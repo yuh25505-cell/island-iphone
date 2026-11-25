@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.island.phone.core.ui.appearance.AppearanceStore
+import com.island.phone.core.ui.glass.GlassBlob
+import com.island.phone.core.ui.glass.GlassMerge
 import com.island.phone.core.ui.glass.GlassParam
 import com.island.phone.core.ui.glass.GlassSettings
 import com.island.phone.core.ui.glass.GlassSurface
@@ -87,11 +89,26 @@ private fun formatValue(param: GlassParam, value: Float): String = when (param.u
 
 @Composable
 private fun GlassPreview() {
+    var merged by remember { mutableStateOf(false) }
+    val blobs = if (merged) {
+        listOf(
+            GlassBlob((-24).dp, 0.dp, 104.dp, 80.dp, 40.dp),
+            GlassBlob(24.dp, 0.dp, 104.dp, 80.dp, 40.dp)
+        )
+    } else {
+        listOf(
+            GlassBlob((-66).dp, 0.dp, 104.dp, 80.dp, 40.dp),
+            GlassBlob(66.dp, 0.dp, 104.dp, 80.dp, 40.dp)
+        )
+    }
     OwnBackdrop(
         modifier = Modifier
             .fillMaxWidth()
             .height(170.dp)
-            .clip(RoundedCornerShape(28.dp)),
+            .clip(RoundedCornerShape(28.dp))
+            .pointerInput(Unit) {
+                detectTapGestures { merged = !merged }
+            },
         source = {
             Box(
                 modifier = Modifier
@@ -128,13 +145,7 @@ private fun GlassPreview() {
             )
         }
     ) {
-        GlassSurface(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(width = 230.dp, height = 88.dp),
-            shape = RoundedCornerShape(44.dp),
-            elevation = 14.dp
-        )
+        GlassMerge(blobs = blobs, modifier = Modifier.fillMaxSize())
     }
 }
 

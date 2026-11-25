@@ -70,7 +70,59 @@ fun GlassSurface(
     )
 }
 
-private fun Color.scaleAlpha(factor: Float): Color = copy(alpha = (alpha * factor).coerceIn(0f, 1f))
+internal fun Color.scaleAlpha(factor: Float): Color = copy(alpha = (alpha * factor).coerceIn(0f, 1f))
+
+private fun DrawScope.lensZone(minDim: Float, minRadius: Float, settings: GlassSettings): Float {
+    val half = minDim / 2f
+    val wide = (minDim * 0.3f).coerceIn(12.dp.toPx(), 40.dp.toPx()) *
+        (max(settings.edge, 0.5f) / 2.7f)
+    return min(wide, max(minRadius, 8.dp.toPx())).coerceIn(1f, max(half, 1f))
+}
+
+internal fun DrawScope.drawLensGlass(
+    backdrop: BackdropState,
+    origin: Offset,
+    lensLayer: GraphicsLayer,
+    lens: GlassLens,
+    glass: GlassTokens,
+    settings: GlassSettings,
+    shapes: FloatArray,
+    radii: FloatArray,
+    count: Int,
+    smooth: Float,
+    minDim: Float,
+    minRadius: Float,
+) {
+    val delta = origin - backdrop.origin
+    val w = max(size.width.roundToInt(), 1)
+    val h = max(size.height.roundToInt(), 1)
+    lensLayer.record(this, layoutDirection, IntSize(w, h)) {
+        translate(-delta.x, -delta.y) { drawLayer(backdrop.blurred) }
+    }
+    val zone = lensZone(minDim, minRadius, settings)
+    val tintA = (glass.tint.alpha * settings.tint).coerceIn(0f, 1f)
+    val amb = glass.ambient.alpha
+    val input = LensInput(
+        width = size.width,
+        height = size.height,
+        shapes = shapes,
+        radii = radii,
+        count = count,
+        smooth = smooth,
+        zone = zone,
+        ior = 1f + settings.refraction * 0.5f,
+        thick = settings.thickness * zone * 1.6f,
+        dispersion = settings.dispersion,
+        magnify = settings.magnify,
+        light = settings.highlight,
+        edgeDark = glass.edgeDark.alpha * settings.darkEdge * 2f,
+        dp = density,
+        tint = floatArrayOf(glass.tint.red, glass.tint.green, glass.tint.blue, tintA),
+        ambient = floatArrayOf(glass.ambient.red * amb, glass.ambient.green * amb, glass.ambient.blue * amb),
+    )
+    lens.apply(lensLayer, input)
+    drawLayer(lensLayer)
+}
 
 private fun DrawScope.drawGlass(
     shape: Shape,
@@ -91,49 +143,37 @@ private fun DrawScope.drawGlass(
         is Outline.Rectangle -> 0f
         is Outline.Generic -> half
     }.coerceAtMost(half)
-    val wide = ((minDim * 0.3f).coerceIn(12.dp.toPx(), 40.dp.toPx()) *
-        (max(settings.edge, 0.5f) / 2.7f))
-    val zone = min(wide, max(radius, 8.dp.toPx())).coerceIn(1f, max(half, 1f))
+    if (backdrop != null && blurOn && lensLayer != null) {
+        val shapes = floatArrayOf(
+            size.width / 2f, size.height / 2f, size.width / 2f, size.height / 2f,
+            0f, 0f, 0f, 0f,
+            0f, 0f, 0f, 0f,
+            0f, 0f, 0f, 0f
+        )
+        drawLensGlass(
+            backdrop, origin, lensLayer, lens, glass, settings,
+            shapes, floatArrayOf(radius, 0f, 0f, 0f), 1, 0f, minDim, radius
+        )
+        return
+    }
     if (backdrop != null && blurOn) {
         val delta = origin - backdrop.origin
-        if (lensLayer != null) {
-            val w = max(size.width.roundToInt(), 1)
-            val h = max(size.height.roundToInt(), 1)
-            lensLayer.record(this, layoutDirection, IntSize(w, h)) {
-                translate(-delta.x, -delta.y) { drawLayer(backdrop.blurred) }
-            }
-            lens.apply(
-                lensLayer,
-                size.width,
-                size.height,
-                radius,
-                zone,
-                1f + settings.refraction * 0.5f,
-                settings.thickness * zone * 1.6f,
-                settings.dispersion,
-                settings.magnify,
-                settings.highlight
-            )
-            drawLayer(lensLayer)
-        } else {
-            translate(-delta.x, -delta.y) { drawLayer(backdrop.blurred) }
-        }
+        translate(-delta.x, -delta.y) { drawLayer(backdrop.blurred) }
     }
     drawRect((if (blurOn) glass.tint else glass.tintFallback).scaleAlpha(settings.tint))
-    if (lensLayer == null) {
-        val glowEdge = glass.rimLight.scaleAlpha(settings.highlight * 0.07f)
-        val glowMid = glass.rimLight.scaleAlpha(settings.highlight * 0.02f)
-        val glow = Brush.linearGradient(
-            0f to glowEdge,
-            0.35f to glowMid,
-            0.65f to glowMid,
-            1f to glowEdge,
-            start = Offset.Zero,
-            end = Offset(size.width, size.height)
-        )
-        for (i in 0 until 5) {
-            drawOutline(outline, glow, style = Stroke(zone * (1.6f - i * 0.3f)))
-        }
+    val zone = lensZone(minDim, radius, settings)
+    val glowEdge = glass.rimLight.scaleAlpha(settings.highlight * 0.07f)
+    val glowMid = glass.rimLight.scaleAlpha(settings.highlight * 0.02f)
+    val glow = Brush.linearGradient(
+        0f to glowEdge,
+        0.35f to glowMid,
+        0.65f to glowMid,
+        1f to glowEdge,
+        start = Offset.Zero,
+        end = Offset(size.width, size.height)
+    )
+    for (i in 0 until 5) {
+        drawOutline(outline, glow, style = Stroke(zone * (1.6f - i * 0.3f)))
     }
     val rimPx = 1.2.dp.toPx()
     val rim = Brush.linearGradient(

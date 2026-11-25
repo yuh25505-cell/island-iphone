@@ -10,6 +10,8 @@ data class GlassTokens(
     val rimDark: Color,
     val shadow: Color,
     val innerShade: Color = Color(0x1F000000),
+    val edgeDark: Color = Color(0x4D000000),
+    val ambient: Color = Color(0x66FFFFFF),
 )
 
 data class WallpaperTokens(
@@ -56,16 +58,20 @@ val DayGlass = GlassTokens(
     rimDark = Color(0x26FFFFFF),
     shadow = Color(0x33000000),
     innerShade = Color(0x22203040),
+    edgeDark = Color(0x4D000000),
+    ambient = Color(0x66FFFFFF),
 )
 
 val NightGlass = GlassTokens(
-    tint = Color(0x12FFFFFF),
+    tint = Color(0x24FFFFFF),
     tintFallback = Color(0x40FFFFFF),
     highlight = Color(0x24FFFFFF),
     rimLight = Color(0x80FFFFFF),
     rimDark = Color(0x14FFFFFF),
     shadow = Color(0x66000000),
     innerShade = Color(0x33000000),
+    edgeDark = Color(0x4D000000),
+    ambient = Color(0x4DFFFFFF),
 )
 
 val DayWallpaper = WallpaperTokens(

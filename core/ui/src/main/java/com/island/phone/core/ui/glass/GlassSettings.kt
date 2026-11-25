@@ -13,7 +13,7 @@ enum class GlassParam(
     val default: Float,
     val unit: GlassUnit,
 ) {
-    BLUR("模糊", 0f, 60f, 6f, GlassUnit.INT),
+    BLUR("模糊", 0f, 60f, 8f, GlassUnit.INT),
     REFRACTION("折射", 0f, 1f, 1f, GlassUnit.PERCENT),
     THICKNESS("厚度", 0f, 1f, 0.6f, GlassUnit.PERCENT),
     EDGE("边缘宽度", 0f, 12f, 2.7f, GlassUnit.ONE_DECIMAL),
@@ -22,7 +22,8 @@ enum class GlassParam(
     TINT("着色", 0f, 2f, 0.8f, GlassUnit.PERCENT),
     SATURATION("饱和度", 0f, 2f, 1f, GlassUnit.PERCENT),
     HIGHLIGHT("高光", 0f, 2f, 1f, GlassUnit.PERCENT),
-    SHADOW("阴影", 0f, 2f, 0.3f, GlassUnit.PERCENT),
+    DARK_EDGE("暗边", 0f, 1f, 0.5f, GlassUnit.PERCENT),
+    SHADOW("阴影", 0f, 2f, 0.2f, GlassUnit.PERCENT),
 }
 
 class GlassSettings private constructor(context: Context) {
@@ -63,6 +64,7 @@ class GlassSettings private constructor(context: Context) {
     val tint: Float get() = valueOf(GlassParam.TINT)
     val saturation: Float get() = valueOf(GlassParam.SATURATION)
     val highlight: Float get() = valueOf(GlassParam.HIGHLIGHT)
+    val darkEdge: Float get() = valueOf(GlassParam.DARK_EDGE)
     val shadow: Float get() = valueOf(GlassParam.SHADOW)
 
     val lensActive: Boolean
@@ -70,7 +72,7 @@ class GlassSettings private constructor(context: Context) {
 
     companion object {
         private const val LOOK_KEY = "look_version"
-        private const val LOOK_VERSION = 2
+        private const val LOOK_VERSION = 3
 
         @Volatile
         private var instance: GlassSettings? = null
