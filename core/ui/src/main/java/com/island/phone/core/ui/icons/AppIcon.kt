@@ -25,6 +25,8 @@ import com.island.phone.core.ui.appearance.AppearanceStore
 import com.island.phone.core.ui.appearance.drawImageCover
 import com.island.phone.core.ui.apps.AppId
 import com.island.phone.core.ui.glass.GlassSurface
+import com.island.phone.core.ui.icons.art.IconArt
+import com.island.phone.core.ui.icons.art.drawArt
 import com.island.phone.core.ui.text.BasicText
 import com.island.phone.core.ui.theme.IslandTheme
 
@@ -32,26 +34,35 @@ import com.island.phone.core.ui.theme.IslandTheme
 fun AppIcon(app: AppId, modifier: Modifier = Modifier, size: Dp = 60.dp) {
     val tokens = IslandTheme.icon
     val custom = AppearanceStore.get(LocalContext.current).iconOf(app)
-    GlassSurface(
-        modifier = modifier.size(size),
-        shape = RoundedCornerShape(percent = 22),
-        elevation = 6.dp
-    ) {
+    val art = IconArt.of(app)
+    if (custom == null && art != null) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    if (custom != null) {
-                        drawImageCover(custom)
-                    } else {
-                        drawRect(tokens.tileTint)
-                        translate(0f, this.size.minDimension * 0.015f) {
-                            drawAppGlyph(app, tokens.glyphShadow)
-                        }
-                        drawAppGlyph(app, tokens.glyph)
-                    }
-                }
+            modifier = modifier
+                .size(size)
+                .drawBehind { drawArt(art) }
         )
+    } else {
+        GlassSurface(
+            modifier = modifier.size(size),
+            shape = RoundedCornerShape(percent = 22),
+            elevation = 6.dp
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        if (custom != null) {
+                            drawImageCover(custom)
+                        } else {
+                            drawRect(tokens.tileTint)
+                            translate(0f, this.size.minDimension * 0.015f) {
+                                drawAppGlyph(app, tokens.glyphShadow)
+                            }
+                            drawAppGlyph(app, tokens.glyph)
+                        }
+                    }
+            )
+        }
     }
 }
 
