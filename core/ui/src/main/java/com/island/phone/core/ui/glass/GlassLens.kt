@@ -19,10 +19,11 @@ internal class GlassLens {
         thick: Float,
         dispersion: Float,
         magnify: Float,
+        light: Float,
     ) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         val lens = (impl as? LensImpl) ?: LensImpl().also { impl = it }
-        lens.apply(layer, width, height, radius, zone, index, thick, dispersion, magnify)
+        lens.apply(layer, width, height, radius, zone, index, thick, dispersion, magnify, light)
     }
 }
 
@@ -41,8 +42,9 @@ private class LensImpl {
         thick: Float,
         dispersion: Float,
         magnify: Float,
+        light: Float,
     ) {
-        val now = floatArrayOf(width, height, radius, zone, index, thick, dispersion, magnify)
+        val now = floatArrayOf(width, height, radius, zone, index, thick, dispersion, magnify, light)
         if (last?.contentEquals(now) == true) return
         shader.setFloatUniform("size", width, height)
         shader.setFloatUniform("radius", radius)
@@ -51,6 +53,7 @@ private class LensImpl {
         shader.setFloatUniform("thick", thick)
         shader.setFloatUniform("dispersion", dispersion)
         shader.setFloatUniform("magnify", magnify)
+        shader.setFloatUniform("light", light)
         layer.renderEffect = android.graphics.RenderEffect
             .createRuntimeShaderEffect(shader, "content")
             .asComposeRenderEffect()
@@ -67,6 +70,7 @@ uniform float index;
 uniform float thick;
 uniform float dispersion;
 uniform float magnify;
+uniform float light;
 
 half4 main(float2 p) {
     float2 c = size * 0.5;
@@ -102,6 +106,13 @@ half4 main(float2 p) {
     float2 pg = clamp(sp, lo, hi);
     float2 pb = clamp(sp + spread, lo, hi);
     half4 g = content.eval(pg);
-    return half4(content.eval(pr).r, g.g, content.eval(pb).b, g.a);
+    half3 rgb = half3(content.eval(pr).r, g.g, content.eval(pb).b);
+    float sa = sin(alpha);
+    float2 L = normalize(float2(-0.6, -0.8));
+    float facing = abs(dot(dir, L));
+    float lit = sa * facing * facing;
+    float dark = sa * (1.0 - facing * facing);
+    rgb = rgb + half3(lit * 0.5 * light) - half3(dark * 0.12 * light);
+    return half4(clamp(rgb, half3(0.0), half3(1.0)), g.a);
 }
 """

@@ -66,7 +66,7 @@ class GlassSettings private constructor(context: Context) {
     val shadow: Float get() = valueOf(GlassParam.SHADOW)
 
     val lensActive: Boolean
-        get() = (refraction > 0.001f && thickness > 0.001f) || magnify > 0.001f
+        get() = (refraction > 0.001f && thickness > 0.001f) || magnify > 0.001f || highlight > 0.001f
 
     companion object {
         private const val LOOK_KEY = "look_version"
