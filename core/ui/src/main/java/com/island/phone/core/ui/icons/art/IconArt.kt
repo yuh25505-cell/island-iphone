@@ -4,24 +4,28 @@ import com.island.phone.core.ui.apps.AppId
 
 object IconArt {
     fun of(app: AppId): List<ArtLayer>? = when (app) {
-        AppId.MEET -> ArtXiangyu
-        AppId.FORUM -> ArtLuntan
-        AppId.ALBUM -> ArtXiangche
-        AppId.LINK -> ArtGuanlianzhanghao
-        AppId.WEATHER -> ArtTianqi
-        AppId.CHAT -> ArtLiaotian
-        AppId.PHONE -> ArtDianhua
-        AppId.COUPLE -> ArtQinglvkongjian
-        AppId.MEMO -> ArtBeiwanglu
-        AppId.SHOP -> ArtMeituan
-        AppId.CALENDAR -> ArtRili
-        AppId.SETTINGS -> ArtShezhi
-        AppId.COUNTDOWN -> ArtDaoshuri
         AppId.AUTH -> ArtDengluxitong
+        AppId.CHAT -> ArtLiaotian
+        AppId.APPEARANCE -> ArtWaiguan
+        AppId.GROWTH -> ArtYunian
+        AppId.ALBUM -> ArtXiangche
+        AppId.CALENDAR -> ArtRili
+        AppId.MEMO -> ArtBeiwanglu
+        AppId.WEATHER -> ArtTianqi
         AppId.CLOCK -> ArtShizhong
+        AppId.SETTINGS -> ArtShezhi
+        AppId.PHONE -> ArtDianhua
+        AppId.COUNTDOWN -> ArtDaoshuri
+        AppId.WORLDBOOK -> ArtShijieshu
         AppId.MUSIC -> ArtYinyue
+        AppId.MEET -> ArtXiangyu
+        AppId.LINK -> ArtGuanlianzhanghao
+        AppId.FORUM -> ArtLuntan
         AppId.NOVEL -> ArtWenxuecheng
+        AppId.COUPLE -> ArtQinglvkongjian
         AppId.PRESET -> ArtYushe
-        else -> null
+        AppId.SIDELINE -> ArtFanwaijian
+        AppId.SHOP -> ArtMeituan
+        AppId.DREAM -> ArtXichi
     }
 }
