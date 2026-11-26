@@ -13,6 +13,9 @@ object IconArt {
         AppId.PHONE -> ArtDianhua
         AppId.COUPLE -> ArtQinglvkongjian
         AppId.MEMO -> ArtBeiwanglu
+        AppId.SHOP -> ArtMeituan
+        AppId.CALENDAR -> ArtRili
+        AppId.SETTINGS -> ArtShezhi
         else -> null
     }
 }
