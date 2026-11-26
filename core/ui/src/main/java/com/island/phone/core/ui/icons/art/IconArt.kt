@@ -16,6 +16,8 @@ object IconArt {
         AppId.SHOP -> ArtMeituan
         AppId.CALENDAR -> ArtRili
         AppId.SETTINGS -> ArtShezhi
+        AppId.COUNTDOWN -> ArtDaoshuri
+        AppId.AUTH -> ArtDengluxitong
         else -> null
     }
 }
