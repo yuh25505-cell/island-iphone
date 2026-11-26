@@ -10,6 +10,9 @@ object IconArt {
         AppId.LINK -> ArtGuanlianzhanghao
         AppId.WEATHER -> ArtTianqi
         AppId.CHAT -> ArtLiaotian
+        AppId.PHONE -> ArtDianhua
+        AppId.COUPLE -> ArtQinglvkongjian
+        AppId.MEMO -> ArtBeiwanglu
         else -> null
     }
 }
