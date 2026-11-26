@@ -19,6 +19,9 @@ object IconArt {
         AppId.COUNTDOWN -> ArtDaoshuri
         AppId.AUTH -> ArtDengluxitong
         AppId.CLOCK -> ArtShizhong
+        AppId.MUSIC -> ArtYinyue
+        AppId.NOVEL -> ArtWenxuecheng
+        AppId.PRESET -> ArtYushe
         else -> null
     }
 }
