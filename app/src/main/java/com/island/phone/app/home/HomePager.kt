@@ -398,9 +398,7 @@ fun HomePager(modifier: Modifier = Modifier) {
                 if (layout.pageCount > 1) {
                     HomeRoundButton(plus = false) { pageMenu = true }
                 }
-                if (layout.hiddenWidgets().isNotEmpty()) {
-                    HomeWidgetAddButton { widgetMenu = true }
-                }
+                HomeWidgetAddButton { widgetMenu = true }
             }
 
             val doneSource = remember { MutableInteractionSource() }
@@ -472,12 +470,13 @@ fun HomePager(modifier: Modifier = Modifier) {
 
         IosActionSheet(
             visible = widgetMenu,
-            actions = layout.hiddenWidgets().map { widgetId ->
-                SheetAction(title = HomeCatalog.items[widgetId]?.label ?: "") {
+            actions = HomeWidgetKind.values().map { kind ->
+                SheetAction(title = HomeCatalog.items[HomeCatalog.widgetBaseId(kind)]?.label ?: "") {
                     widgetMenu = false
-                    if (layout.addWidget(widgetId, pagerState.currentPage)) {
+                    val placedId = layout.addWidgetKind(kind, pagerState.currentPage)
+                    if (placedId != null) {
                         saveLayout()
-                        val placed = layout.find(widgetId)?.page ?: -1
+                        val placed = layout.find(placedId)?.page ?: -1
                         if (placed >= 0) scrollTo = placed
                     }
                 }
