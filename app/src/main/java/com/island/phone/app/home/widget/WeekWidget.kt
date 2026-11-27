@@ -1,0 +1,235 @@
+package com.island.phone.app.home.widget
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.island.phone.core.theme.IslandTheme
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+private val weekNames = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+
+@Composable
+fun WeekWidget(modifier: Modifier = Modifier) {
+    val colors = IslandTheme.colors
+    val today by rememberToday()
+    val dateText = today.format(DateTimeFormatter.ofPattern("MM'月'dd'日'"))
+    val weekText = today.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.SIMPLIFIED_CHINESE)
+    val start = today.minusDays((today.dayOfWeek.value % 7).toLong())
+
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            .background(widgetBackground(colors.gray6), RoundedCornerShape(30.dp)),
+    ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
+        ) {
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                Box(
+                    Modifier
+                        .align(Alignment.Center)
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                        .clip(CircleShape)
+                        .background(colors.gray4),
+                )
+                Column(
+                    Modifier.align(Alignment.CenterStart).fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                    InfoPill {
+                        HeadphoneGlyph(colors.label, 12.dp)
+                        Spacer(Modifier.width(4.dp))
+                        PillText("我的小世界")
+                    }
+                    InfoPill { PillText(dateText) }
+                }
+                Column(
+                    Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    InfoPill {
+                        WaveGlyph(colors.label)
+                        Spacer(Modifier.width(3.dp))
+                        PillText("♪")
+                    }
+                    InfoPill { PillText(weekText) }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .height(maxHeight * 0.36f)
+                    .background(colors.gray5, RoundedCornerShape(14.dp))
+                    .padding(start = 6.dp, end = 6.dp, bottom = 6.dp),
+            ) {
+                Row(Modifier.fillMaxWidth().weight(0.4f)) {
+                    weekNames.forEach { name ->
+                        Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            BasicText(
+                                text = name,
+                                style = TextStyle(
+                                    color = colors.label,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                ),
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(0.6f)
+                        .background(colors.groupedCard, RoundedCornerShape(12.dp)),
+                ) {
+                    for (i in 0 until 7) {
+                        val day = start.plusDays(i.toLong())
+                        Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            val isToday = day == today
+                            Box(
+                                Modifier
+                                    .size(24.dp)
+                                    .background(if (isToday) colors.gray else Color.Transparent, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText(
+                                    text = day.dayOfMonth.toString(),
+                                    style = TextStyle(
+                                        color = colors.label,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                    ),
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoPill(content: @Composable RowScope.() -> Unit) {
+    val colors = IslandTheme.colors
+    Row(
+        Modifier
+            .height(28.dp)
+            .background(colors.gray5, RoundedCornerShape(50))
+            .padding(horizontal = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
+}
+
+@Composable
+private fun PillText(text: String) {
+    val colors = IslandTheme.colors
+    BasicText(
+        text = text,
+        style = TextStyle(
+            color = colors.label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+        ),
+        maxLines = 1,
+    )
+}
+
+@Composable
+private fun HeadphoneGlyph(color: Color, size: Dp) {
+    Canvas(Modifier.size(size)) {
+        val w = this.size.width
+        drawArc(
+            color = color,
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(w * 0.1f, w * 0.08f),
+            size = Size(w * 0.8f, w * 0.8f),
+            style = Stroke(width = w * 0.12f, cap = StrokeCap.Round),
+        )
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(w * 0.04f, w * 0.5f),
+            size = Size(w * 0.24f, w * 0.42f),
+            cornerRadius = CornerRadius(w * 0.08f, w * 0.08f),
+        )
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(w * 0.72f, w * 0.5f),
+            size = Size(w * 0.24f, w * 0.42f),
+            cornerRadius = CornerRadius(w * 0.08f, w * 0.08f),
+        )
+    }
+}
+
+@Composable
+private fun WaveGlyph(color: Color) {
+    Canvas(Modifier.size(width = 40.dp, height = 12.dp)) {
+        val w = size.width
+        val h = size.height
+        val play = Path().apply {
+            moveTo(0f, h * 0.2f)
+            lineTo(0f, h * 0.8f)
+            lineTo(w * 0.12f, h * 0.5f)
+            close()
+        }
+        drawPath(path = play, color = color)
+        val heights = listOf(0.3f, 0.7f, 0.45f, 1f, 0.55f, 0.8f, 0.35f)
+        val gap = (w * 0.98f - w * 0.22f) / (heights.size - 1)
+        heights.forEachIndexed { i, ratio ->
+            val x = w * 0.22f + gap * i
+            drawLine(
+                color = color,
+                start = Offset(x, h * (0.5f - ratio / 2f)),
+                end = Offset(x, h * (0.5f + ratio / 2f)),
+                strokeWidth = 1.5.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}

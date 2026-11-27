@@ -37,7 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-private const val HOME_PAGES = 3
+private const val HOME_PAGES = 2
 
 private enum class EditTarget { DATE, QUOTE }
 
@@ -63,8 +63,8 @@ fun HomePager(modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 userScrollEnabled = !editorVisible,
             ) { page ->
-                when (page) {
-                    0 -> HomeFirstPage(
+                if (page == 0) {
+                    HomeFirstPage(
                         dateLines = dateLines,
                         quoteLines = quoteLines,
                         onEditDate = {
@@ -76,8 +76,8 @@ fun HomePager(modifier: Modifier = Modifier) {
                             editorVisible = true
                         },
                     )
-                    1 -> HomeSecondPage()
-                    else -> Box(Modifier.fillMaxSize())
+                } else {
+                    HomeSecondPage()
                 }
             }
             HomePageDots(pagerState.currentPage, Modifier.align(Alignment.CenterHorizontally))

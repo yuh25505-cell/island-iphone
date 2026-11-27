@@ -3,7 +3,7 @@ package com.island.phone.app.home
 const val HOME_COLUMNS = 4
 const val HOME_ROWS = 6
 
-enum class HomeWidgetKind { DATE, QUOTE, MUSIC, RECORD, PHOTOS }
+enum class HomeWidgetKind { DATE, QUOTE, WORD, WEEK, PHOTOS }
 
 sealed interface HomeItem {
     val column: Int
@@ -41,7 +41,7 @@ object HomeFirstPageLayout {
         HomeAppItem(column = 3, row = 2, label = "屿年", iconName = "Year"),
         HomeAppItem(column = 2, row = 3, label = "日历", iconName = "Cal"),
         HomeAppItem(column = 3, row = 3, label = "预设", iconName = "Preset"),
-        HomeWidgetItem(column = 0, row = 4, columnSpan = 4, rowSpan = 2, label = "音乐", kind = HomeWidgetKind.MUSIC),
+        HomeWidgetItem(column = 0, row = 4, columnSpan = 4, rowSpan = 2, label = "单词", kind = HomeWidgetKind.WORD),
     )
 
     val dock: List<HomeAppItem> = listOf(
@@ -54,7 +54,7 @@ object HomeFirstPageLayout {
 
 object HomeSecondPageLayout {
     val items: List<HomeItem> = listOf(
-        HomeWidgetItem(column = 0, row = 0, columnSpan = 4, rowSpan = 2, label = "唱片", kind = HomeWidgetKind.RECORD),
+        HomeWidgetItem(column = 0, row = 0, columnSpan = 4, rowSpan = 2, label = "周历", kind = HomeWidgetKind.WEEK),
         HomeWidgetItem(column = 0, row = 2, columnSpan = 4, rowSpan = 2, label = "相片", kind = HomeWidgetKind.PHOTOS),
         HomeAppItem(column = 0, row = 4, label = "相册", iconName = "Album"),
         HomeAppItem(column = 1, row = 4, label = "音乐", iconName = "Music"),

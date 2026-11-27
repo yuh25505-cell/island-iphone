@@ -12,8 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.island.phone.app.home.widget.DateWidget
-import com.island.phone.app.home.widget.MusicWidget
 import com.island.phone.app.home.widget.QuoteWidget
+import com.island.phone.app.home.widget.WordWidget
 
 @Composable
 fun HomeFirstPage(
@@ -48,8 +48,8 @@ fun HomeFirstPage(
                         when (item.kind) {
                             HomeWidgetKind.DATE -> DateWidget(lines = dateLines, onClick = onEditDate)
                             HomeWidgetKind.QUOTE -> QuoteWidget(lines = quoteLines, onClick = onEditQuote)
-                            HomeWidgetKind.MUSIC -> MusicWidget()
-                            HomeWidgetKind.RECORD, HomeWidgetKind.PHOTOS -> Unit
+                            HomeWidgetKind.WORD -> WordWidget()
+                            HomeWidgetKind.WEEK, HomeWidgetKind.PHOTOS -> Unit
                         }
                     }
                 }

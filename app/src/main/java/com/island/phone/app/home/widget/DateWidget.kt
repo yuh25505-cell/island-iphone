@@ -33,7 +33,7 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 
 @Composable
-private fun rememberToday(): State<LocalDate> {
+internal fun rememberToday(): State<LocalDate> {
     val today = remember { mutableStateOf(LocalDate.now()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -61,7 +61,7 @@ fun DateWidget(
         modifier
             .fillMaxSize()
             .widgetTap(onClick)
-            .background(colors.gray6, RoundedCornerShape(34.dp))
+            .background(widgetBackground(colors.gray6), RoundedCornerShape(34.dp))
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

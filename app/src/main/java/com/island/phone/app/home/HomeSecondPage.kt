@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.island.phone.app.home.widget.PhotoWidget
-import com.island.phone.app.home.widget.RecordWidget
+import com.island.phone.app.home.widget.WeekWidget
 
 @Composable
 fun HomeSecondPage(modifier: Modifier = Modifier) {
@@ -39,9 +39,9 @@ fun HomeSecondPage(modifier: Modifier = Modifier) {
                             ),
                     ) {
                         when (item.kind) {
-                            HomeWidgetKind.RECORD -> RecordWidget()
+                            HomeWidgetKind.WEEK -> WeekWidget()
                             HomeWidgetKind.PHOTOS -> PhotoWidget()
-                            HomeWidgetKind.DATE, HomeWidgetKind.QUOTE, HomeWidgetKind.MUSIC -> Unit
+                            HomeWidgetKind.DATE, HomeWidgetKind.QUOTE, HomeWidgetKind.WORD -> Unit
                         }
                     }
                 }

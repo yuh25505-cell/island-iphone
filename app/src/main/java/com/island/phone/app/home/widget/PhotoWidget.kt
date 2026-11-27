@@ -40,7 +40,7 @@ fun PhotoWidget(modifier: Modifier = Modifier) {
     BoxWithConstraints(
         modifier
             .fillMaxSize()
-            .background(colors.gray6, RoundedCornerShape(30.dp)),
+            .background(widgetBackground(colors.gray6), RoundedCornerShape(30.dp)),
     ) {
         val cardW = maxWidth * 0.238f
         val cardH = maxHeight * 0.68f

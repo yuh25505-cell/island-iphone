@@ -30,7 +30,7 @@ fun QuoteWidget(
         modifier
             .fillMaxSize()
             .widgetTap(onClick)
-            .background(colors.gray5, RoundedCornerShape(30.dp)),
+            .background(widgetBackground(colors.gray5), RoundedCornerShape(30.dp)),
     ) {
         val k = (maxHeight.value / 166f).coerceIn(0.78f, 1f)
         Column(
