@@ -34,7 +34,7 @@ fun HomeScreen(mode: ThemeMode, onModeChange: (ThemeMode) -> Unit) {
     var sheetVisible by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().background(colors.background)) {
-        HomeFirstPage(Modifier.fillMaxSize())
+        HomePager(Modifier.fillMaxSize())
 
         IosActionSheet(
             visible = sheetVisible,

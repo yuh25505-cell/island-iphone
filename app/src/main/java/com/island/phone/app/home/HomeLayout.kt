@@ -3,7 +3,7 @@ package com.island.phone.app.home
 const val HOME_COLUMNS = 4
 const val HOME_ROWS = 6
 
-enum class HomeWidgetKind { DATE, QUOTE, MUSIC }
+enum class HomeWidgetKind { DATE, QUOTE, MUSIC, RECORD, PHOTOS }
 
 sealed interface HomeItem {
     val column: Int
@@ -49,5 +49,20 @@ object HomeFirstPageLayout {
         HomeAppItem(column = 1, row = 0, label = "相遇", iconName = "Meet"),
         HomeAppItem(column = 2, row = 0, label = "世界书", iconName = "Lore"),
         HomeAppItem(column = 3, row = 0, label = "设置", iconName = "Setup"),
+    )
+}
+
+object HomeSecondPageLayout {
+    val items: List<HomeItem> = listOf(
+        HomeWidgetItem(column = 0, row = 0, columnSpan = 4, rowSpan = 2, label = "唱片", kind = HomeWidgetKind.RECORD),
+        HomeWidgetItem(column = 0, row = 2, columnSpan = 4, rowSpan = 2, label = "相片", kind = HomeWidgetKind.PHOTOS),
+        HomeAppItem(column = 0, row = 4, label = "相册", iconName = "Album"),
+        HomeAppItem(column = 1, row = 4, label = "音乐", iconName = "Music"),
+        HomeAppItem(column = 2, row = 4, label = "论坛", iconName = "Forum"),
+        HomeAppItem(column = 3, row = 4, label = "查岗", iconName = "Watch"),
+        HomeAppItem(column = 0, row = 5, label = "文学城", iconName = "Novel"),
+        HomeAppItem(column = 1, row = 5, label = "情侣空间", iconName = "Love"),
+        HomeAppItem(column = 2, row = 5, label = "美团", iconName = "Food"),
+        HomeAppItem(column = 3, row = 5, label = "栖迟", iconName = "Dream"),
     )
 }
