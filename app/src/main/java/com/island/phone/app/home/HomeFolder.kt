@@ -6,13 +6,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,9 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -72,7 +69,8 @@ internal fun HomeFolderIcon(
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val borderColor = if (colors.isDark) colors.gray4 else WidgetLightBackground
-    val dotColor = colors.label.copy(alpha = 0.22f)
+    val gap = iconSize * 0.035f
+    val cell = (iconSize * 0.72f - gap * 2f) / 3f
 
     Box(
         modifier
@@ -81,20 +79,20 @@ internal fun HomeFolderIcon(
             .background(colors.groupedCard, shape)
             .border(1.dp, borderColor, shape)
             .clickable(interactionSource = source, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.fillMaxSize().padding(iconSize * 0.14f)) {
-            val gap = size.width * 0.07f
-            val cell = (size.width - gap * 2f) / 3f
-            val count = minOf(apps.size, FOLDER_MAX)
-            for (i in 0 until count) {
-                val x = (i % 3) * (cell + gap)
-                val y = (i / 3) * (cell + gap)
-                drawRoundRect(
-                    color = dotColor,
-                    topLeft = Offset(x, y),
-                    size = Size(cell, cell),
-                    cornerRadius = CornerRadius(cell * 0.26f),
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+            for (rowIndex in 0 until 3) {
+                Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    for (columnIndex in 0 until 3) {
+                        val item = apps.getOrNull(rowIndex * 3 + columnIndex)?.let { HomeCatalog.items[it] as? HomeAppItem }
+                        if (item != null) {
+                            HomeAppIcon(name = item.iconName, size = cell, enabled = false)
+                        } else {
+                            Spacer(Modifier.size(cell))
+                        }
+                    }
+                }
             }
         }
     }
@@ -192,7 +190,7 @@ internal fun HomeFolderOverlay(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
                                     if (item != null) {
-                                        HomeAppIcon(name = item.iconName, size = 60.dp)
+                                        HomeAppIcon(name = item.iconName, size = 60.dp, enabled = false)
                                         Spacer(Modifier.height(4.dp))
                                         BasicText(
                                             text = item.label,

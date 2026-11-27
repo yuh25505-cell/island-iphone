@@ -33,6 +33,7 @@ fun HomeAppIcon(
     size: Dp,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
+    enabled: Boolean = true,
 ) {
     val colors = IslandTheme.colors
     val shape = RoundedCornerShape(size * 0.24f)
@@ -47,7 +48,7 @@ fun HomeAppIcon(
             .alpha(if (pressed) 0.55f else 1f)
             .background(colors.groupedCard, shape)
             .border(1.dp, borderColor, shape)
-            .clickable(interactionSource = source, indication = null, onClick = onClick),
+            .clickable(interactionSource = source, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         BasicText(

@@ -1,10 +1,14 @@
 package com.island.phone.app.home
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +59,7 @@ internal fun HomePage(
     editing: Boolean,
     angle: State<Float>,
     modifier: Modifier = Modifier,
+    snapId: String? = null,
     content: @Composable (HomeItem, Boolean, Dp) -> Unit,
 ) {
     Box(modifier.fillMaxSize().padding(horizontal = 16.dp)) {
@@ -62,9 +68,16 @@ internal fun HomePage(
             if (item != null) {
                 val r = homeItemRect(item, p.column, p.row, metrics)
                 key(p.id) {
+                    val slide = if (p.id == snapId) {
+                        snap<Dp>()
+                    } else {
+                        spring<Dp>(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)
+                    }
+                    val x by animateDpAsState(targetValue = r.x.dp, animationSpec = slide, label = "homeItemX")
+                    val y by animateDpAsState(targetValue = r.y.dp, animationSpec = slide, label = "homeItemY")
                     Box(
                         Modifier
-                            .offset(x = r.x.dp, y = r.y.dp)
+                            .offset(x = x, y = y)
                             .size(width = r.w.dp, height = r.h.dp)
                             .homeWobble(item, editing, angle),
                     ) {

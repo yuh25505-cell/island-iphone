@@ -2,12 +2,16 @@ package com.island.phone.app.home
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.setValue
 import kotlin.math.abs
 
 internal const val DOCK_PAGE = -1
 internal const val HOME_PAGE_COUNT = 2
+internal const val HOME_PAGE_MAX = 8
 internal const val DOCK_MAX = 4
 
 internal val HomeItem.id: String
@@ -46,6 +50,9 @@ internal class HomeLayoutState private constructor() {
     private val list = mutableStateListOf<HomePlacement>()
     private val folderNames = mutableStateMapOf<Int, String>()
 
+    var pageCount by mutableIntStateOf(HOME_PAGE_COUNT)
+        private set
+
     fun onPage(page: Int): List<HomePlacement> = list.filter { it.page == page }
 
     fun dock(): List<HomePlacement> = list.filter { it.page == DOCK_PAGE }.sortedBy { it.column }
@@ -58,14 +65,48 @@ internal class HomeLayoutState private constructor() {
     fun folderName(number: Int): String = folderNames[number] ?: FOLDER_DEFAULT_NAME
 
     fun encode(): String {
-        val places = list.joinToString(";") { "${it.id}:${it.page}:${it.column}:${it.row}" }
-        val names = folderNames.entries.joinToString(";") { "#${it.key}=${it.value}" }
-        return if (names.isEmpty()) places else "$places;$names"
+        val parts = ArrayList<String>()
+        list.forEach { parts.add("${it.id}:${it.page}:${it.column}:${it.row}") }
+        folderNames.entries.forEach { parts.add("#${it.key}=${it.value}") }
+        parts.add("@$pageCount")
+        return parts.joinToString(";")
+    }
+
+    fun addPage(): Boolean {
+        if (pageCount >= HOME_PAGE_MAX) return false
+        pageCount += 1
+        return true
+    }
+
+    fun deletePage(page: Int): Boolean {
+        if (pageCount <= 1 || page !in 0 until pageCount) return false
+        val snapshot = list.toList()
+        val moving = onPage(page).sortedByDescending { p ->
+            HomeCatalog.items[p.id]?.let { it.columnSpan * it.rowSpan } ?: 0
+        }
+        for (p in moving) {
+            var placed = false
+            for (other in 0 until pageCount) {
+                if (other == page) continue
+                val spot = nearestFree(other, p.column, p.row, p.id) ?: continue
+                put(HomePlacement(p.id, other, spot.first, spot.second))
+                placed = true
+                break
+            }
+            if (!placed) {
+                list.clear()
+                list.addAll(snapshot)
+                return false
+            }
+        }
+        list.filter { it.page > page }.forEach { put(HomePlacement(it.id, it.page - 1, it.column, it.row)) }
+        pageCount -= 1
+        return true
     }
 
     fun renameFolder(number: Int, name: String) {
         if (find(folderIdOf(number)) == null) return
-        val clean = name.replace(";", " ").replace(":", " ").replace("#", "").trim()
+        val clean = name.replace(";", " ").replace(":", " ").replace("#", "").replace("@", "").trim()
         if (clean.isEmpty() || clean == FOLDER_DEFAULT_NAME) folderNames.remove(number) else folderNames[number] = clean
     }
 
@@ -112,7 +153,7 @@ internal class HomeLayoutState private constructor() {
         val apps = folderApps(number)
         if (apps.size > 1) {
             var free = 0
-            for (page in 0 until HOME_PAGE_COUNT) {
+            for (page in 0 until pageCount) {
                 for (r in 0 until HOME_ROWS) {
                     for (c in 0 until HOME_COLUMNS) {
                         if (isFree(page, c, r, apps[0])) free++
@@ -137,7 +178,7 @@ internal class HomeLayoutState private constructor() {
     fun moveToGrid(id: String, page: Int, column: Int, row: Int): Boolean {
         val item = HomeCatalog.items[id] ?: return false
         val current = find(id) ?: return false
-        if (page !in 0 until HOME_PAGE_COUNT) return false
+        if (page !in 0 until pageCount) return false
         val c = column.coerceIn(0, HOME_COLUMNS - item.columnSpan)
         val r = row.coerceIn(0, HOME_ROWS - item.rowSpan)
         if (item is HomeAppItem) {
@@ -154,6 +195,10 @@ internal class HomeLayoutState private constructor() {
         }
         if (isFree(page, c, r, id)) {
             put(HomePlacement(id, page, c, r))
+            normalizeDock()
+            return true
+        }
+        if (item is HomeWidgetItem && pushAside(id, current, page, c, r)) {
             normalizeDock()
             return true
         }
@@ -182,6 +227,36 @@ internal class HomeLayoutState private constructor() {
         return true
     }
 
+    private fun pushAside(id: String, current: HomePlacement, page: Int, c: Int, r: Int): Boolean {
+        val item = HomeCatalog.items[id] ?: return false
+        val snapshot = list.toList()
+        val hit = list.filter { p ->
+            if (p.id == id || p.page != page) return@filter false
+            val other = HomeCatalog.items[p.id] ?: return@filter false
+            c < p.column + other.columnSpan && p.column < c + item.columnSpan &&
+                r < p.row + other.rowSpan && p.row < r + item.rowSpan
+        }.sortedByDescending { p -> HomeCatalog.items[p.id]?.let { it.columnSpan * it.rowSpan } ?: 0 }
+        if (hit.isEmpty()) return false
+        val hitIds = hit.map { it.id }.toSet()
+        list.removeAll { it.id in hitIds }
+        put(HomePlacement(id, page, c, r))
+        for (d in hit) {
+            val spot = if (current.page in 0 until pageCount) {
+                nearestFree(current.page, current.column, current.row, d.id)
+            } else {
+                null
+            }
+            if (spot != null) {
+                put(HomePlacement(d.id, current.page, spot.first, spot.second))
+            } else if (!placeNear(d.id, page, d.column, d.row)) {
+                list.clear()
+                list.addAll(snapshot)
+                return false
+            }
+        }
+        return true
+    }
+
     private fun put(p: HomePlacement) {
         val index = list.indexOfFirst { it.id == p.id }
         if (index >= 0) list[index] = p else list.add(p)
@@ -201,8 +276,8 @@ internal class HomeLayoutState private constructor() {
     }
 
     private fun placeNear(id: String, page: Int, column: Int, row: Int): Boolean {
-        val startPage = if (page in 0 until HOME_PAGE_COUNT) page else 0
-        val order = listOf(startPage) + (0 until HOME_PAGE_COUNT).filter { it != startPage }
+        val startPage = if (page in 0 until pageCount) page else 0
+        val order = listOf(startPage) + (0 until pageCount).filter { it != startPage }
         for (p in order) {
             val spot = nearestFree(p, column, row, id) ?: continue
             put(HomePlacement(id, p, spot.first, spot.second))
@@ -247,7 +322,7 @@ internal class HomeLayoutState private constructor() {
             list.add(HomePlacement(p.id, DOCK_PAGE, dock().size, 0))
             return true
         }
-        if (p.page !in 0 until HOME_PAGE_COUNT) return false
+        if (p.page !in 0 until pageCount) return false
         if (!isFree(p.page, p.column, p.row, p.id)) return false
         list.add(p)
         return true
@@ -277,7 +352,7 @@ internal class HomeLayoutState private constructor() {
 
     private fun addAnywhere(id: String): Boolean {
         val item = HomeCatalog.items[id] ?: return false
-        for (page in 0 until HOME_PAGE_COUNT) {
+        for (page in 0 until pageCount) {
             val spot = nearestFree(page, 0, 0, id) ?: continue
             list.add(HomePlacement(id, page, spot.first, spot.second))
             return true
@@ -294,14 +369,20 @@ internal class HomeLayoutState private constructor() {
             HomeCatalog.clearFolders()
             val state = HomeLayoutState()
             val tokens = raw.split(";")
-            tokens.forEach { t ->
+            var savedCount = HOME_PAGE_COUNT
+            for (t in tokens) {
                 if (t.startsWith("#")) {
                     val eq = t.indexOf('=')
                     val n = if (eq > 1) t.substring(1, eq).toIntOrNull() else null
                     if (n != null) state.folderNames[n] = t.substring(eq + 1)
+                } else if (t.startsWith("@")) {
+                    val n = t.substring(1).toIntOrNull()
+                    if (n != null) savedCount = n
                 }
             }
             val saved = tokens.mapNotNull { parse(it) }
+            val lastPage = saved.filter { it.page >= 0 }.maxOfOrNull { it.page } ?: 0
+            state.pageCount = maxOf(savedCount, lastPage + 1).coerceIn(1, HOME_PAGE_MAX)
             saved.forEach { p -> folderNumber(p.id)?.let { HomeCatalog.registerFolder(it) } }
             saved.filter { it.page != DOCK_PAGE && it.page != FOLDER_PAGE }.forEach { state.tryAdd(it) }
             saved.filter { it.page == DOCK_PAGE }.sortedBy { it.column }.forEach { state.tryAdd(it) }
@@ -325,7 +406,7 @@ internal class HomeLayoutState private constructor() {
         }
 
         private fun parse(token: String): HomePlacement? {
-            if (token.startsWith("#")) return null
+            if (token.startsWith("#") || token.startsWith("@")) return null
             val parts = token.split(":")
             if (parts.size != 4) return null
             val page = parts[1].toIntOrNull() ?: return null
