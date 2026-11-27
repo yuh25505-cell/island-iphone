@@ -63,8 +63,10 @@ import com.island.phone.core.theme.IslandTheme
 import com.island.phone.data.files.HomeWidgetImages
 import com.island.phone.data.settings.HomeLayoutStore
 import com.island.phone.data.settings.HomeWidgetTextStore
+import com.island.phone.ui.dialog.IosActionSheet
 import com.island.phone.ui.dialog.IosMediaEditDialog
 import com.island.phone.ui.dialog.IosTextEditDialog
+import com.island.phone.ui.dialog.SheetAction
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -111,14 +113,29 @@ fun HomePager(modifier: Modifier = Modifier) {
     var dragGrab by remember { mutableStateOf(Offset.Zero) }
     var dragSize by remember { mutableStateOf(Offset.Zero) }
     var edgeDir by remember { mutableIntStateOf(0) }
+    var openFolder by remember { mutableStateOf<Int?>(null) }
+    var lastFolder by remember { mutableIntStateOf(0) }
+    var folderMenu by remember { mutableStateOf(false) }
+    var renameVisible by remember { mutableStateOf(false) }
+    var movingApp by remember { mutableStateOf<String?>(null) }
     val today = remember(editorVisible) { LocalDate.now() }
     val pagerState = rememberPagerState(pageCount = { HOME_PAGE_COUNT })
     val angle = rememberWobbleAngle(editing)
+    val shownFolder = openFolder ?: lastFolder
+    val saveLayout: () -> Unit = { scope.launch { layoutStore.save(layout.encode()) } }
+    val openFolderAt: (Int) -> Unit = { n ->
+        lastFolder = n
+        openFolder = n
+    }
 
     BackHandler(enabled = editing) {
         editing = false
         dragId = null
         edgeDir = 0
+    }
+
+    BackHandler(enabled = openFolder != null) {
+        openFolder = null
     }
 
     LaunchedEffect(dragId, edgeDir) {
@@ -140,7 +157,7 @@ fun HomePager(modifier: Modifier = Modifier) {
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
-                        if (!editorVisible) {
+                        if (!editorVisible && openFolder == null) {
                             editing = true
                             val hit = geo.hit(layout, pagerState.currentPage, offset.x, offset.y)
                             if (hit != null && !pagerState.isScrollInProgress) {
@@ -177,10 +194,15 @@ fun HomePager(modifier: Modifier = Modifier) {
                                 dragPointer.x, dragPointer.y, dragGrab.x, dragGrab.y,
                             )
                             if (drop != null) {
-                                val moved = if (drop.dockIndex >= 0) {
-                                    layout.moveToDock(id, drop.dockIndex)
-                                } else {
-                                    layout.moveToGrid(id, drop.page, drop.column, drop.row)
+                                var moved = false
+                                val mergeId = drop.mergeId
+                                if (mergeId != null) moved = layout.mergeIntoFolder(id, mergeId)
+                                if (!moved) {
+                                    moved = if (drop.dockIndex >= 0) {
+                                        layout.moveToDock(id, drop.dockIndex)
+                                    } else {
+                                        layout.moveToGrid(id, drop.page, drop.column, drop.row)
+                                    }
                                 }
                                 if (moved) scope.launch { layoutStore.save(layout.encode()) }
                             }
@@ -242,7 +264,17 @@ fun HomePager(modifier: Modifier = Modifier) {
                         },
                     )
                 }
-                is HomeAppItem -> if (inDock) {
+                is HomeAppItem -> if (item.isFolder()) {
+                    val number = folderNumber(item.id) ?: 0
+                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        HomeFolderIcon(
+                            apps = layout.folderApps(number),
+                            iconSize = iconSize,
+                            onClick = { if (!editing) openFolderAt(number) },
+                        )
+                        HomeItemLabel(layout.folderName(number))
+                    }
+                } else if (inDock) {
                     HomeAppIcon(name = item.iconName, size = iconSize)
                 } else {
                     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -269,7 +301,7 @@ fun HomePager(modifier: Modifier = Modifier) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = !editorVisible && dragId == null,
+                    userScrollEnabled = !editorVisible && dragId == null && openFolder == null,
                 ) { page ->
                     HomePage(
                         page = page,
@@ -354,6 +386,71 @@ fun HomePager(modifier: Modifier = Modifier) {
                 }
             }
         }
+
+        HomeFolderOverlay(
+            visible = openFolder != null,
+            name = layout.folderName(shownFolder),
+            apps = layout.folderApps(shownFolder),
+            onNameClick = { folderMenu = true },
+            onAppLongPress = { appId -> movingApp = appId },
+            onDismiss = { openFolder = null },
+        )
+
+        IosActionSheet(
+            visible = folderMenu,
+            actions = listOf(
+                SheetAction(title = "重命名") {
+                    folderMenu = false
+                    renameVisible = true
+                },
+                SheetAction(title = "解散文件夹", destructive = true) {
+                    folderMenu = false
+                    if (layout.dissolveFolder(shownFolder)) {
+                        openFolder = null
+                        saveLayout()
+                    }
+                },
+            ),
+            cancelText = "取消",
+            onDismiss = { folderMenu = false },
+        )
+
+        IosActionSheet(
+            visible = movingApp != null,
+            actions = listOf(
+                SheetAction(title = "移出文件夹") {
+                    val id = movingApp
+                    movingApp = null
+                    if (id != null && layout.removeFromFolder(id)) {
+                        if (layout.find(folderIdOf(shownFolder)) == null) openFolder = null
+                        saveLayout()
+                    }
+                },
+            ),
+            cancelText = "取消",
+            onDismiss = { movingApp = null },
+        )
+
+        IosTextEditDialog(
+            visible = renameVisible,
+            title = "文件夹名称",
+            values = listOf(layout.folderName(shownFolder)),
+            maxLength = 12,
+            cancelText = "取消",
+            saveText = "保存",
+            resetText = "恢复默认",
+            onSave = { lines ->
+                layout.renameFolder(shownFolder, lines.firstOrNull() ?: "")
+                renameVisible = false
+                saveLayout()
+            },
+            onReset = {
+                layout.renameFolder(shownFolder, "")
+                renameVisible = false
+                saveLayout()
+            },
+            onDismiss = { renameVisible = false },
+        )
 
         IosTextEditDialog(
             visible = editorVisible && (target == EditTarget.DATE || target == EditTarget.QUOTE),
