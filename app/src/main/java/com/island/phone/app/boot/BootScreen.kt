@@ -40,11 +40,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 object BootTimeline {
-    const val TEXT1_START = 500f
-    const val TEXT1_END = 1700f
-    const val TEXT2_START = 1500f
-    const val TEXT2_END = 2700f
-    const val TOTAL = 4200
+    const val TEXT1_START = 200f
+    const val TEXT1_END = 900f
+    const val TEXT2_START = 800f
+    const val TEXT2_END = 1500f
+    const val TOTAL = 2600
 }
 
 internal fun progressOf(t: Float, from: Float, to: Float): Float =
@@ -79,7 +79,7 @@ fun BootScreen(onFinished: () -> Unit) {
         }
         play.join()
         watcher.cancel()
-        exit.animateTo(1f, tween(if (skipped) 280 else 500))
+        exit.animateTo(1f, tween(if (skipped) 200 else 350))
         finish()
     }
 
