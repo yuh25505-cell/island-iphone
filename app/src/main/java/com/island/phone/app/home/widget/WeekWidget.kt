@@ -50,18 +50,11 @@ fun WeekWidget(modifier: Modifier = Modifier) {
     val dateText = today.format(DateTimeFormatter.ofPattern("MM'月'dd'日'"))
     val weekText = today.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.SIMPLIFIED_CHINESE)
     val start = today.minusDays((today.dayOfWeek.value % 7).toLong())
+    val blockColor = widgetBackground(colors.gray5)
 
-    BoxWithConstraints(
-        modifier
-            .fillMaxSize()
-            .background(widgetBackground(colors.gray6), RoundedCornerShape(30.dp)),
-    ) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
         val widgetHeight = maxHeight
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
-        ) {
+        Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 Box(
                     Modifier
@@ -76,24 +69,24 @@ fun WeekWidget(modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.Start,
                 ) {
-                    InfoPill {
+                    InfoPill(blockColor) {
                         HeadphoneGlyph(colors.label, 12.dp)
                         Spacer(Modifier.width(4.dp))
                         PillText("我的小世界")
                     }
-                    InfoPill { PillText(dateText) }
+                    InfoPill(blockColor) { PillText(dateText) }
                 }
                 Column(
                     Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.End,
                 ) {
-                    InfoPill {
+                    InfoPill(blockColor) {
                         WaveGlyph(colors.label)
                         Spacer(Modifier.width(3.dp))
                         PillText("♪")
                     }
-                    InfoPill { PillText(weekText) }
+                    InfoPill(blockColor) { PillText(weekText) }
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -101,7 +94,7 @@ fun WeekWidget(modifier: Modifier = Modifier) {
                 Modifier
                     .fillMaxWidth()
                     .height(widgetHeight * 0.36f)
-                    .background(colors.gray5, RoundedCornerShape(14.dp))
+                    .background(blockColor, RoundedCornerShape(14.dp))
                     .padding(start = 6.dp, end = 6.dp, bottom = 6.dp),
             ) {
                 Row(Modifier.fillMaxWidth().weight(0.4f)) {
@@ -154,12 +147,11 @@ fun WeekWidget(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun InfoPill(content: @Composable RowScope.() -> Unit) {
-    val colors = IslandTheme.colors
+private fun InfoPill(color: Color, content: @Composable RowScope.() -> Unit) {
     Row(
         Modifier
             .height(28.dp)
-            .background(colors.gray5, RoundedCornerShape(50))
+            .background(color, RoundedCornerShape(50))
             .padding(horizontal = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
