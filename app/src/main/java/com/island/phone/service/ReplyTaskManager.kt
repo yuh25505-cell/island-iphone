@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -81,6 +82,7 @@ class ReplyTaskManager(
         val text = StringBuilder()
         var reason: String? = null
         var retryAttempt = 0
+        val self = currentCoroutineContext()[Job]
         try {
             chatClient.chat(config, request).collect { event ->
                 when (event) {
@@ -119,7 +121,7 @@ class ReplyTaskManager(
             )
             if (!foreground.isForeground) ReplyNotifier.notifyFailed(context, taskId, title)
         } finally {
-            jobs.remove(taskId, coroutineContext[Job])
+            if (self != null) jobs.remove(taskId, self) else jobs.remove(taskId)
             _activeCount.value = jobs.size
         }
     }
