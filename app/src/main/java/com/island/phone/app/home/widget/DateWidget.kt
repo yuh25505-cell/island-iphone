@@ -53,6 +53,7 @@ fun DateWidget(
 ) {
     val colors = IslandTheme.colors
     val today by rememberToday()
+    val fit = rememberFitScale(lines)
     val day = today.dayOfMonth.toString()
     val month = today.format(DateTimeFormatter.ofPattern("MMMM", Locale.ENGLISH))
     val weekday = today.format(DateTimeFormatter.ofPattern("EEEE", Locale.ENGLISH))
@@ -119,15 +120,12 @@ fun DateWidget(
             verticalArrangement = Arrangement.Center,
         ) {
             lines.forEach { line ->
-                BasicText(
-                    text = line.ifEmpty { " " },
-                    style = TextStyle(
-                        color = colors.label,
-                        fontSize = 12.sp,
-                        lineHeight = 19.sp,
-                    ),
-                    maxLines = 1,
-                    softWrap = false,
+                FitText(
+                    text = line,
+                    fit = fit,
+                    size = 12f,
+                    lineHeight = 19f,
+                    color = colors.label,
                 )
             }
         }

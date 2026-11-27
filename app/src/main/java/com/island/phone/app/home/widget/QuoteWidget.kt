@@ -26,6 +26,7 @@ fun QuoteWidget(
     modifier: Modifier = Modifier,
 ) {
     val colors = IslandTheme.colors
+    val fit = rememberFitScale(lines)
     BoxWithConstraints(
         modifier
             .fillMaxSize()
@@ -36,31 +37,33 @@ fun QuoteWidget(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp, vertical = (14 * k).dp),
+                .padding(
+                    start = 14.dp,
+                    end = 14.dp,
+                    top = (12 * k).dp,
+                    bottom = (20 * k).dp,
+                ),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             BasicText(
                 text = "“",
                 style = TextStyle(
                     color = colors.label.copy(alpha = 0.5f),
-                    fontSize = (44 * k).sp,
-                    lineHeight = (44 * k).sp,
+                    fontSize = (34 * k).sp,
+                    lineHeight = (34 * k).sp,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Black,
                 ),
             )
-            Column(verticalArrangement = Arrangement.spacedBy((7 * k).dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy((5 * k).dp)) {
                 lines.forEachIndexed { index, text ->
-                    BasicText(
-                        text = text.ifEmpty { " " },
-                        style = TextStyle(
-                            color = colors.label.copy(alpha = quoteAlphas.getOrElse(index) { 0.3f }),
-                            fontSize = (14 * k).sp,
-                            lineHeight = (18 * k).sp,
-                            fontWeight = FontWeight.Medium,
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
+                    FitText(
+                        text = text,
+                        fit = fit,
+                        size = 14f * k,
+                        lineHeight = 17f * k,
+                        color = colors.label.copy(alpha = quoteAlphas.getOrElse(index) { 0.3f }),
+                        weight = FontWeight.Medium,
                     )
                 }
             }

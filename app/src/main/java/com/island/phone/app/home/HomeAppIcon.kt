@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -37,6 +38,7 @@ fun HomeAppIcon(
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val borderColor = if (colors.isDark) colors.gray4 else colors.gray5
+    val fontSize = size.value * 0.215f
 
     Box(
         modifier
@@ -51,10 +53,15 @@ fun HomeAppIcon(
             text = name,
             style = TextStyle(
                 color = colors.label,
-                fontSize = (size.value * 0.215f).sp,
+                fontSize = fontSize.sp,
+                lineHeight = (fontSize * 1.2f).sp,
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
+                lineHeightStyle = LineHeightStyle(
+                    alignment = LineHeightStyle.Alignment.Center,
+                    trim = LineHeightStyle.Trim.Both,
+                ),
             ),
             maxLines = 1,
             softWrap = false,

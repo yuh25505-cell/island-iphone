@@ -48,6 +48,7 @@ import kotlinx.coroutines.runBlocking
 private val LabelArea = 22.dp
 private val WidgetGap = 10.dp
 private val WidgetInset = 4.dp
+private val EdgeGap = 12.dp
 
 private enum class EditTarget { DATE, QUOTE }
 
@@ -67,7 +68,6 @@ fun HomeFirstPage(modifier: Modifier = Modifier) {
 
     Box(modifier) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            Spacer(Modifier.height(16.dp))
             BoxWithConstraints(
                 Modifier
                     .fillMaxWidth()
@@ -76,7 +76,8 @@ fun HomeFirstPage(modifier: Modifier = Modifier) {
             ) {
                 val cellW = maxWidth / HOME_COLUMNS
                 val idealCellH = (cellW * 2 - WidgetInset * 2 + LabelArea + WidgetGap) / 2
-                val cellH = minOf(idealCellH, maxHeight / HOME_ROWS)
+                val cellH = minOf(idealCellH, (maxHeight - EdgeGap * 2 + WidgetGap) / HOME_ROWS)
+                val edge = maxOf(EdgeGap, (maxHeight - cellH * HOME_ROWS + WidgetGap) / 2)
                 val iconSize = minOf(60.dp, cellW - 14.dp, cellH - LabelArea)
                 val quoteSide = minOf(cellW * 2 - WidgetInset * 2, cellH * 2 - LabelArea - WidgetGap)
 
@@ -87,7 +88,7 @@ fun HomeFirstPage(modifier: Modifier = Modifier) {
                             val h = if (item.square) quoteSide else cellH * item.rowSpan - WidgetGap
                             Box(
                                 Modifier
-                                    .offset(x = cellW * item.column + WidgetInset, y = cellH * item.row)
+                                    .offset(x = cellW * item.column + WidgetInset, y = edge + cellH * item.row)
                                     .size(width = w, height = h),
                             ) {
                                 when (item.kind) {
@@ -117,7 +118,7 @@ fun HomeFirstPage(modifier: Modifier = Modifier) {
                             }
                             Column(
                                 Modifier
-                                    .offset(x = cellW * item.column, y = top)
+                                    .offset(x = cellW * item.column, y = edge + top)
                                     .size(width = cellW, height = iconSize + LabelArea),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
