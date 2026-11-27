@@ -432,6 +432,15 @@ fun HomePager(modifier: Modifier = Modifier) {
             apps = layout.folderApps(shownFolder),
             onNameClick = { folderMenu = true },
             onAppLongPress = { appId -> movingApp = appId },
+            onAppDragOut = { appId ->
+                if (layout.removeFromFolder(appId)) {
+                    if (layout.find(folderIdOf(shownFolder)) == null) openFolder = null
+                    saveLayout()
+                }
+            },
+            onAppReorder = { appId, index ->
+                if (layout.reorderInFolder(appId, index)) saveLayout()
+            },
             onDismiss = { openFolder = null },
         )
 
