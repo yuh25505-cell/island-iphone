@@ -16,13 +16,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.island.phone.core.theme.IslandTheme
+import com.island.phone.data.settings.HomeWidgetTextStore
 import com.island.phone.ui.image.SourceImage
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -89,28 +90,16 @@ fun WeekWidget(
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.Start,
                 ) {
-                    InfoPill(blockColor, sideMax) {
-                        HeadphoneGlyph(colors.label, 12.dp)
-                        if (leftText.isNotEmpty()) {
-                            Spacer(Modifier.width(4.dp))
-                            PillText(leftText)
-                        }
-                    }
-                    InfoPill(blockColor, sideMax) { PillText(dateText) }
+                    GlyphPill(leftText, blockColor, sideMax)
+                    GlyphPill(dateText, blockColor, sideMax)
                 }
                 Column(
                     Modifier.align(Alignment.CenterEnd).fillMaxHeight().padding(bottom = 8.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.End,
                 ) {
-                    InfoPill(blockColor, sideMax) {
-                        WaveGlyph(colors.label)
-                        if (rightText.isNotEmpty()) {
-                            Spacer(Modifier.width(3.dp))
-                            PillText(rightText)
-                        }
-                    }
-                    InfoPill(blockColor, sideMax) { PillText(weekText) }
+                    GlyphPill(rightText, blockColor, sideMax)
+                    GlyphPill(weekText, blockColor, sideMax)
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -170,6 +159,49 @@ fun WeekWidget(
     }
 }
 
+private sealed interface GlyphPart {
+    class Text(val value: String) : GlyphPart
+    object Headphone : GlyphPart
+    object Play : GlyphPart
+    object Wave : GlyphPart
+}
+
+private fun parseGlyphText(raw: String): List<GlyphPart> {
+    val tokens: List<Pair<String, GlyphPart>> = listOf(
+        HomeWidgetTextStore.GlyphHeadphone to GlyphPart.Headphone,
+        HomeWidgetTextStore.GlyphPlay to GlyphPart.Play,
+        HomeWidgetTextStore.GlyphWave to GlyphPart.Wave,
+    )
+    val out = mutableListOf<GlyphPart>()
+    val buffer = StringBuilder()
+    var i = 0
+    while (i < raw.length) {
+        val hit = tokens.firstOrNull { raw.startsWith(it.first, i) }
+        if (hit != null) {
+            if (buffer.isNotEmpty()) {
+                out.add(GlyphPart.Text(buffer.toString()))
+                buffer.setLength(0)
+            }
+            out.add(hit.second)
+            i += hit.first.length
+        } else {
+            buffer.append(raw[i])
+            i++
+        }
+    }
+    if (buffer.isNotEmpty()) out.add(GlyphPart.Text(buffer.toString()))
+    return out
+}
+
+@Composable
+private fun GlyphPill(text: String, color: Color, maxWidth: Dp) {
+    if (text.isBlank()) {
+        Spacer(Modifier.height(28.dp))
+    } else {
+        InfoPill(color, maxWidth) { PillContent(text) }
+    }
+}
+
 @Composable
 private fun InfoPill(color: Color, maxWidth: Dp, content: @Composable RowScope.() -> Unit) {
     Row(
@@ -181,6 +213,20 @@ private fun InfoPill(color: Color, maxWidth: Dp, content: @Composable RowScope.(
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )
+}
+
+@Composable
+private fun RowScope.PillContent(text: String) {
+    val colors = IslandTheme.colors
+    val parts = remember(text) { parseGlyphText(text) }
+    parts.forEach { part ->
+        when (part) {
+            is GlyphPart.Text -> PillText(part.value)
+            GlyphPart.Headphone -> HeadphoneGlyph(colors.label, 12.dp)
+            GlyphPart.Play -> PlayGlyph(colors.label)
+            GlyphPart.Wave -> WaveGlyph(colors.label)
+        }
+    }
 }
 
 @Composable
@@ -228,26 +274,36 @@ private fun HeadphoneGlyph(color: Color, size: Dp) {
 }
 
 @Composable
-private fun WaveGlyph(color: Color) {
-    Canvas(Modifier.size(width = 40.dp, height = 12.dp)) {
+private fun PlayGlyph(color: Color) {
+    Canvas(Modifier.size(width = 5.dp, height = 12.dp)) {
         val w = size.width
         val h = size.height
         val play = Path().apply {
             moveTo(0f, h * 0.2f)
             lineTo(0f, h * 0.8f)
-            lineTo(w * 0.12f, h * 0.5f)
+            lineTo(w, h * 0.5f)
             close()
         }
         drawPath(path = play, color = color)
+    }
+}
+
+@Composable
+private fun WaveGlyph(color: Color) {
+    Canvas(Modifier.size(width = 31.dp, height = 12.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = 1.5.dp.toPx()
         val heights = listOf(0.3f, 0.7f, 0.45f, 1f, 0.55f, 0.8f, 0.35f)
-        val gap = (w * 0.98f - w * 0.22f) / (heights.size - 1)
+        val left = stroke / 2f
+        val gap = (w - stroke) / (heights.size - 1)
         heights.forEachIndexed { i, ratio ->
-            val x = w * 0.22f + gap * i
+            val x = left + gap * i
             drawLine(
                 color = color,
                 start = Offset(x, h * (0.5f - ratio / 2f)),
                 end = Offset(x, h * (0.5f + ratio / 2f)),
-                strokeWidth = 1.5.dp.toPx(),
+                strokeWidth = stroke,
                 cap = StrokeCap.Round,
             )
         }

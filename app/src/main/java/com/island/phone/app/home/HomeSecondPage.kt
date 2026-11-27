@@ -19,6 +19,7 @@ fun HomeSecondPage(
     weekTexts: List<String>,
     weekAvatar: String,
     photoSources: List<String>,
+    photoCaptions: List<String>,
     onEditWeek: () -> Unit,
     onEditPhotos: () -> Unit,
     modifier: Modifier = Modifier,
@@ -53,6 +54,7 @@ fun HomeSecondPage(
                             )
                             HomeWidgetKind.PHOTOS -> PhotoWidget(
                                 sources = photoSources,
+                                captions = photoCaptions,
                                 onClick = onEditPhotos,
                             )
                             HomeWidgetKind.DATE, HomeWidgetKind.QUOTE, HomeWidgetKind.WORD -> Unit

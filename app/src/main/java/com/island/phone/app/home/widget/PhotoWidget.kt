@@ -26,18 +26,19 @@ import com.island.phone.core.theme.IslandTheme
 import com.island.phone.ui.image.SourceImage
 
 @Immutable
-private class PhotoSlot(val x: Float, val y: Float, val caption: String)
+private class PhotoSlot(val x: Float, val y: Float)
 
 private val photoSlots = listOf(
-    PhotoSlot(x = 0.059f, y = 0.14f, caption = "something"),
-    PhotoSlot(x = 0.270f, y = 0.24f, caption = "Sunny"),
-    PhotoSlot(x = 0.487f, y = 0.12f, caption = "HELLO"),
-    PhotoSlot(x = 0.700f, y = 0.215f, caption = "Mooncake"),
+    PhotoSlot(x = 0.059f, y = 0.14f),
+    PhotoSlot(x = 0.270f, y = 0.24f),
+    PhotoSlot(x = 0.487f, y = 0.12f),
+    PhotoSlot(x = 0.700f, y = 0.215f),
 )
 
 @Composable
 fun PhotoWidget(
     sources: List<String>,
+    captions: List<String>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -52,7 +53,7 @@ fun PhotoWidget(
         val cardH = maxHeight * 0.68f
         photoSlots.forEachIndexed { index, slot ->
             PhotoCard(
-                caption = slot.caption,
+                caption = captions.getOrElse(index) { "" },
                 source = sources.getOrElse(index) { "" },
                 modifier = Modifier
                     .offset(x = maxWidth * slot.x, y = maxHeight * slot.y)

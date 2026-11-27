@@ -66,6 +66,9 @@ fun HomePager(modifier: Modifier = Modifier) {
     val photoSources by store.photoSources.collectAsStateWithLifecycle(
         initialValue = remember { runBlocking { store.photoSources.first() } },
     )
+    val photoCaptions by store.photoCaptions.collectAsStateWithLifecycle(
+        initialValue = remember { runBlocking { store.photoCaptions.first() } },
+    )
     var editorVisible by remember { mutableStateOf(false) }
     var target by remember { mutableStateOf(EditTarget.DATE) }
     val today = remember(editorVisible) { LocalDate.now() }
@@ -96,6 +99,7 @@ fun HomePager(modifier: Modifier = Modifier) {
                         weekTexts = weekTexts,
                         weekAvatar = weekAvatar,
                         photoSources = photoSources,
+                        photoCaptions = photoCaptions,
                         onEditWeek = {
                             target = EditTarget.WEEK
                             editorVisible = true
@@ -149,10 +153,14 @@ fun HomePager(modifier: Modifier = Modifier) {
                     weekTexts.getOrElse(3) { "" }.ifBlank { weekDayText(today) },
                 )
             } else {
-                emptyList()
+                photoCaptions
             },
-            textLabels = if (isWeek) listOf("左上", "右上", "日期", "星期") else emptyList(),
-            maxLength = 8,
+            textLabels = if (isWeek) {
+                listOf("左上", "右上", "日期", "星期")
+            } else {
+                listOf("第一", "第二", "第三", "第四")
+            },
+            maxLength = if (isWeek) 20 else 12,
             linkHint = "图片链接",
             localHint = "相册图片",
             pickText = "相册",
@@ -172,7 +180,7 @@ fun HomePager(modifier: Modifier = Modifier) {
                         store.setWeek(saved.firstOrNull() ?: "", list)
                     } else {
                         val saved = HomeWidgetImages.commit(context, imgs, photoSources)
-                        store.setPhotos(saved)
+                        store.setPhotos(saved, txts)
                     }
                 }
                 editorVisible = false
