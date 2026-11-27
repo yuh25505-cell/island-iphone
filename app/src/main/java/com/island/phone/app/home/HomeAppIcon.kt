@@ -41,6 +41,11 @@ fun HomeAppIcon(
     val pressed by source.collectIsPressedAsState()
     val borderColor = if (colors.isDark) colors.gray4 else WidgetLightBackground
     val fontSize = size.value * 0.215f
+    val touch = if (enabled) {
+        Modifier.clickable(interactionSource = source, indication = null, onClick = onClick)
+    } else {
+        Modifier
+    }
 
     Box(
         modifier
@@ -48,7 +53,7 @@ fun HomeAppIcon(
             .alpha(if (pressed) 0.55f else 1f)
             .background(colors.groupedCard, shape)
             .border(1.dp, borderColor, shape)
-            .clickable(interactionSource = source, indication = null, enabled = enabled, onClick = onClick),
+            .then(touch),
         contentAlignment = Alignment.Center,
     ) {
         BasicText(
