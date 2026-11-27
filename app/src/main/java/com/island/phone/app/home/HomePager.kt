@@ -122,6 +122,8 @@ fun HomePager(modifier: Modifier = Modifier) {
     var renameVisible by remember { mutableStateOf(false) }
     var movingApp by remember { mutableStateOf<String?>(null) }
     var pageMenu by remember { mutableStateOf(false) }
+    var widgetMenu by remember { mutableStateOf(false) }
+    var removingWidget by remember { mutableStateOf<String?>(null) }
     var scrollTo by remember { mutableStateOf<Int?>(null) }
     val today = remember(editorVisible) { LocalDate.now() }
     val pagerState = rememberPagerState(pageCount = { layout.pageCount })
@@ -242,46 +244,51 @@ fun HomePager(modifier: Modifier = Modifier) {
 
         val itemContent: @Composable (HomeItem, Boolean, Dp) -> Unit = { item, inDock, iconSize ->
             when (item) {
-                is HomeWidgetItem -> when (item.kind) {
-                    HomeWidgetKind.DATE -> DateWidget(
-                        lines = dateLines,
-                        onClick = {
-                            if (!editing) {
-                                target = EditTarget.DATE
-                                editorVisible = true
-                            }
-                        },
-                    )
-                    HomeWidgetKind.QUOTE -> QuoteWidget(
-                        lines = quoteLines,
-                        onClick = {
-                            if (!editing) {
-                                target = EditTarget.QUOTE
-                                editorVisible = true
-                            }
-                        },
-                    )
-                    HomeWidgetKind.WORD -> WordWidget()
-                    HomeWidgetKind.WEEK -> WeekWidget(
-                        texts = weekTexts,
-                        avatar = weekAvatar,
-                        onClick = {
-                            if (!editing) {
-                                target = EditTarget.WEEK
-                                editorVisible = true
-                            }
-                        },
-                    )
-                    HomeWidgetKind.PHOTOS -> PhotoWidget(
-                        sources = photoSources,
-                        captions = photoCaptions,
-                        onClick = {
-                            if (!editing) {
-                                target = EditTarget.PHOTO
-                                editorVisible = true
-                            }
-                        },
-                    )
+                is HomeWidgetItem -> Box(Modifier.fillMaxSize()) {
+                    when (item.kind) {
+                        HomeWidgetKind.DATE -> DateWidget(
+                            lines = dateLines,
+                            onClick = {
+                                if (!editing) {
+                                    target = EditTarget.DATE
+                                    editorVisible = true
+                                }
+                            },
+                        )
+                        HomeWidgetKind.QUOTE -> QuoteWidget(
+                            lines = quoteLines,
+                            onClick = {
+                                if (!editing) {
+                                    target = EditTarget.QUOTE
+                                    editorVisible = true
+                                }
+                            },
+                        )
+                        HomeWidgetKind.WORD -> WordWidget()
+                        HomeWidgetKind.WEEK -> WeekWidget(
+                            texts = weekTexts,
+                            avatar = weekAvatar,
+                            onClick = {
+                                if (!editing) {
+                                    target = EditTarget.WEEK
+                                    editorVisible = true
+                                }
+                            },
+                        )
+                        HomeWidgetKind.PHOTOS -> PhotoWidget(
+                            sources = photoSources,
+                            captions = photoCaptions,
+                            onClick = {
+                                if (!editing) {
+                                    target = EditTarget.PHOTO
+                                    editorVisible = true
+                                }
+                            },
+                        )
+                    }
+                    if (editing) {
+                        HomeWidgetRemoveBadge(Modifier.align(Alignment.TopStart)) { removingWidget = item.id }
+                    }
                 }
                 is HomeAppItem -> if (item.isFolder()) {
                     val number = folderNumber(item.id) ?: 0
@@ -391,6 +398,9 @@ fun HomePager(modifier: Modifier = Modifier) {
                 if (layout.pageCount > 1) {
                     HomeRoundButton(plus = false) { pageMenu = true }
                 }
+                if (layout.hiddenWidgets().isNotEmpty()) {
+                    HomeWidgetAddButton { widgetMenu = true }
+                }
             }
 
             val doneSource = remember { MutableInteractionSource() }
@@ -458,6 +468,35 @@ fun HomePager(modifier: Modifier = Modifier) {
             ),
             cancelText = "取消",
             onDismiss = { pageMenu = false },
+        )
+
+        IosActionSheet(
+            visible = widgetMenu,
+            actions = layout.hiddenWidgets().map { widgetId ->
+                SheetAction(title = HomeCatalog.items[widgetId]?.label ?: "") {
+                    widgetMenu = false
+                    if (layout.addWidget(widgetId, pagerState.currentPage)) {
+                        saveLayout()
+                        val placed = layout.find(widgetId)?.page ?: -1
+                        if (placed >= 0) scrollTo = placed
+                    }
+                }
+            },
+            cancelText = "取消",
+            onDismiss = { widgetMenu = false },
+        )
+
+        IosActionSheet(
+            visible = removingWidget != null,
+            actions = listOf(
+                SheetAction(title = "移除组件", destructive = true) {
+                    val widgetId = removingWidget
+                    removingWidget = null
+                    if (widgetId != null && layout.removeWidget(widgetId)) saveLayout()
+                },
+            ),
+            cancelText = "取消",
+            onDismiss = { removingWidget = null },
         )
 
         IosActionSheet(
