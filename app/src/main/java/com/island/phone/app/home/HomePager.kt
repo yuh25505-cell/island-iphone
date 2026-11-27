@@ -1,6 +1,7 @@
 package com.island.phone.app.home
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -39,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -108,6 +110,7 @@ fun HomePager(modifier: Modifier = Modifier) {
     var target by remember { mutableStateOf(EditTarget.DATE) }
     var editing by remember { mutableStateOf(false) }
     var dragId by remember { mutableStateOf<String?>(null) }
+    var lastDragId by remember { mutableStateOf<String?>(null) }
     var dragFromDock by remember { mutableStateOf(false) }
     var dragPointer by remember { mutableStateOf(Offset.Zero) }
     var dragGrab by remember { mutableStateOf(Offset.Zero) }
@@ -118,8 +121,10 @@ fun HomePager(modifier: Modifier = Modifier) {
     var folderMenu by remember { mutableStateOf(false) }
     var renameVisible by remember { mutableStateOf(false) }
     var movingApp by remember { mutableStateOf<String?>(null) }
+    var pageMenu by remember { mutableStateOf(false) }
+    var scrollTo by remember { mutableStateOf<Int?>(null) }
     val today = remember(editorVisible) { LocalDate.now() }
-    val pagerState = rememberPagerState(pageCount = { HOME_PAGE_COUNT })
+    val pagerState = rememberPagerState(pageCount = { layout.pageCount })
     val angle = rememberWobbleAngle(editing)
     val shownFolder = openFolder ?: lastFolder
     val saveLayout: () -> Unit = { scope.launch { layoutStore.save(layout.encode()) } }
@@ -141,8 +146,21 @@ fun HomePager(modifier: Modifier = Modifier) {
     LaunchedEffect(dragId, edgeDir) {
         if (dragId != null && edgeDir != 0) {
             delay(550)
-            val next = (pagerState.currentPage + edgeDir).coerceIn(0, HOME_PAGE_COUNT - 1)
-            pagerState.animateScrollToPage(next)
+            val wanted = pagerState.currentPage + edgeDir
+            if (wanted >= layout.pageCount && layout.addPage()) {
+                saveLayout()
+                delay(80)
+            }
+            pagerState.animateScrollToPage(wanted.coerceIn(0, layout.pageCount - 1))
+        }
+    }
+
+    LaunchedEffect(scrollTo) {
+        val t = scrollTo
+        if (t != null) {
+            delay(80)
+            pagerState.animateScrollToPage(t.coerceIn(0, layout.pageCount - 1))
+            scrollTo = null
         }
     }
 
@@ -162,6 +180,7 @@ fun HomePager(modifier: Modifier = Modifier) {
                             val hit = geo.hit(layout, pagerState.currentPage, offset.x, offset.y)
                             if (hit != null && !pagerState.isScrollInProgress) {
                                 dragId = hit.id
+                                lastDragId = hit.id
                                 dragFromDock = hit.fromDock
                                 dragSize = Offset(hit.width, hit.height)
                                 dragGrab = Offset(
@@ -310,11 +329,12 @@ fun HomePager(modifier: Modifier = Modifier) {
                         hiddenId = dragId,
                         editing = editing,
                         angle = angle,
+                        snapId = lastDragId,
                         content = itemContent,
                     )
                 }
             }
-            HomePageDots(pagerState.currentPage, Modifier.align(Alignment.CenterHorizontally))
+            HomePageDots(layout.pageCount, pagerState.currentPage, Modifier.align(Alignment.CenterHorizontally))
             Spacer(Modifier.height(14.dp))
             HomeDock(
                 layout = layout,
@@ -354,6 +374,25 @@ fun HomePager(modifier: Modifier = Modifier) {
         }
 
         if (editing) {
+            Row(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(start = 8.dp)
+                    .height(44.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HomeRoundButton(plus = true) {
+                    if (layout.addPage()) {
+                        saveLayout()
+                        scrollTo = layout.pageCount - 1
+                    }
+                }
+                if (layout.pageCount > 1) {
+                    HomeRoundButton(plus = false) { pageMenu = true }
+                }
+            }
+
             val doneSource = remember { MutableInteractionSource() }
             Box(
                 Modifier
@@ -394,6 +433,22 @@ fun HomePager(modifier: Modifier = Modifier) {
             onNameClick = { folderMenu = true },
             onAppLongPress = { appId -> movingApp = appId },
             onDismiss = { openFolder = null },
+        )
+
+        IosActionSheet(
+            visible = pageMenu,
+            actions = listOf(
+                SheetAction(title = "删除这一页", destructive = true) {
+                    pageMenu = false
+                    val page = pagerState.currentPage
+                    if (layout.deletePage(page)) {
+                        saveLayout()
+                        scrollTo = minOf(page, layout.pageCount - 1)
+                    }
+                },
+            ),
+            cancelText = "取消",
+            onDismiss = { pageMenu = false },
         )
 
         IosActionSheet(
@@ -538,15 +593,54 @@ fun HomePager(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun HomePageDots(current: Int, modifier: Modifier = Modifier) {
+private fun HomePageDots(count: Int, current: Int, modifier: Modifier = Modifier) {
     val colors = IslandTheme.colors
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        repeat(HOME_PAGE_COUNT) { index ->
+        repeat(count) { index ->
             Box(
                 Modifier
                     .size(8.dp)
                     .background(colors.label.copy(alpha = if (index == current) 0.85f else 0.25f), CircleShape),
             )
+        }
+    }
+}
+
+@Composable
+private fun HomeRoundButton(plus: Boolean, onClick: () -> Unit) {
+    val colors = IslandTheme.colors
+    val source = remember { MutableInteractionSource() }
+    Box(
+        Modifier
+            .size(44.dp)
+            .clickable(interactionSource = source, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .size(30.dp)
+                .background(colors.fill, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.size(14.dp)) {
+                val w = 2.dp.toPx()
+                drawLine(
+                    color = colors.accent,
+                    start = Offset(0f, size.height / 2f),
+                    end = Offset(size.width, size.height / 2f),
+                    strokeWidth = w,
+                    cap = StrokeCap.Round,
+                )
+                if (plus) {
+                    drawLine(
+                        color = colors.accent,
+                        start = Offset(size.width / 2f, 0f),
+                        end = Offset(size.width / 2f, size.height),
+                        strokeWidth = w,
+                        cap = StrokeCap.Round,
+                    )
+                }
+            }
         }
     }
 }
