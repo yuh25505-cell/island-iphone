@@ -31,6 +31,7 @@ class HomeWidgetItem(
     override val label: String,
     val kind: HomeWidgetKind,
     val square: Boolean = false,
+    val copy: Int = 0,
 ) : HomeItem
 
 object HomeFirstPageLayout {
