@@ -67,8 +67,8 @@ fun LockClock(modifier: Modifier = Modifier) {
             text = timeText,
             style = TextStyle(
                 color = colors.label,
-                fontSize = 88.sp,
-                lineHeight = 100.sp,
+                fontSize = 116.sp,
+                lineHeight = 130.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
             ),
