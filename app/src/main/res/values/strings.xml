@@ -8,5 +8,6 @@
     <string name="reply_channel_running">正在回复</string>
     <string name="reply_channel_done">回复通知</string>
     <string name="reply_running_text">正在回复中…</string>
+    <string name="reply_running_count">正在回复中（%d）</string>
     <string name="reply_failed_text">回复失败，点开查看</string>
 </resources>

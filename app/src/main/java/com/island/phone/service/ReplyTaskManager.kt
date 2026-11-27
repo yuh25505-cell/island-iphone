@@ -65,7 +65,10 @@ class ReplyTaskManager(
 
     fun consume(taskId: String) {
         val current = _states.value[taskId]
-        if (current != null && current !is ReplyState.Running) removeState(taskId)
+        if (current != null && current !is ReplyState.Running) {
+            removeState(taskId)
+            ReplyNotifier.cancel(context, taskId)
+        }
     }
 
     private suspend fun runTask(

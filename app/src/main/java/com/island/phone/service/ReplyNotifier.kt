@@ -39,13 +39,20 @@ object ReplyNotifier {
         )
     }
 
-    fun buildRunning(context: Context): Notification =
+    fun buildRunning(context: Context, count: Int = 1): Notification =
         NotificationCompat.Builder(context, CHANNEL_RUNNING)
             .setSmallIcon(R.drawable.ic_stat_island)
             .setContentTitle(context.getString(R.string.app_name))
-            .setContentText(context.getString(R.string.reply_running_text))
+            .setContentText(
+                if (count > 1) {
+                    context.getString(R.string.reply_running_count, count)
+                } else {
+                    context.getString(R.string.reply_running_text)
+                },
+            )
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setContentIntent(openAppIntent(context))
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
@@ -57,6 +64,10 @@ object ReplyNotifier {
 
     fun notifyFailed(context: Context, taskId: String, title: String) {
         post(context, taskId, title, context.getString(R.string.reply_failed_text))
+    }
+
+    fun cancel(context: Context, taskId: String) {
+        NotificationManagerCompat.from(context).cancel(taskId.hashCode())
     }
 
     @SuppressLint("MissingPermission")
@@ -75,6 +86,8 @@ object ReplyNotifier {
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setWhen(System.currentTimeMillis())
             .setAutoCancel(true)
             .setContentIntent(openAppIntent(context))
             .build()
