@@ -26,7 +26,6 @@ fun QuoteWidget(
     modifier: Modifier = Modifier,
 ) {
     val colors = IslandTheme.colors
-    val fit = rememberFitScale(lines)
     BoxWithConstraints(
         modifier
             .fillMaxSize()
@@ -57,11 +56,10 @@ fun QuoteWidget(
             )
             Column(verticalArrangement = Arrangement.spacedBy((5 * k).dp)) {
                 lines.forEachIndexed { index, text ->
-                    FitText(
+                    WidgetText(
                         text = text,
-                        fit = fit,
-                        size = 14f * k,
-                        lineHeight = 17f * k,
+                        size = 14f,
+                        lineHeight = 17f,
                         color = colors.label.copy(alpha = quoteAlphas.getOrElse(index) { 0.3f }),
                         weight = FontWeight.Medium,
                     )

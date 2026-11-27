@@ -40,13 +40,14 @@ import com.island.phone.app.home.widget.MusicWidget
 import com.island.phone.app.home.widget.QuoteWidget
 import com.island.phone.core.theme.IslandTheme
 import com.island.phone.data.settings.HomeWidgetTextStore
-import com.island.phone.ui.dialog.IosTextEditSheet
+import com.island.phone.ui.dialog.IosTextEditDialog
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 private val LabelArea = 22.dp
-private val WidgetGap = 10.dp
+private val WidgetGap = 15.dp
+private val AppRowGap = 5.dp
 private val WidgetInset = 4.dp
 private val EdgeGap = 12.dp
 
@@ -76,8 +77,8 @@ fun HomeFirstPage(modifier: Modifier = Modifier) {
             ) {
                 val cellW = maxWidth / HOME_COLUMNS
                 val idealCellH = (cellW * 2 - WidgetInset * 2 + LabelArea + WidgetGap) / 2
-                val cellH = minOf(idealCellH, (maxHeight - EdgeGap * 2 + WidgetGap) / HOME_ROWS)
-                val edge = maxOf(EdgeGap, (maxHeight - cellH * HOME_ROWS + WidgetGap) / 2)
+                val cellH = minOf(idealCellH, (maxHeight - EdgeGap * 2 + WidgetGap - AppRowGap) / HOME_ROWS)
+                val edge = maxOf(EdgeGap, (maxHeight - cellH * HOME_ROWS + WidgetGap - AppRowGap) / 2)
                 val iconSize = minOf(60.dp, cellW - 14.dp, cellH - LabelArea)
                 val quoteSide = minOf(cellW * 2 - WidgetInset * 2, cellH * 2 - LabelArea - WidgetGap)
 
@@ -86,9 +87,10 @@ fun HomeFirstPage(modifier: Modifier = Modifier) {
                         is HomeWidgetItem -> {
                             val w = if (item.square) quoteSide else cellW * item.columnSpan - WidgetInset * 2
                             val h = if (item.square) quoteSide else cellH * item.rowSpan - WidgetGap
+                            val extra = if (item.row >= 4) AppRowGap else 0.dp
                             Box(
                                 Modifier
-                                    .offset(x = cellW * item.column + WidgetInset, y = edge + cellH * item.row)
+                                    .offset(x = cellW * item.column + WidgetInset, y = edge + cellH * item.row + extra)
                                     .size(width = w, height = h),
                             ) {
                                 when (item.kind) {
@@ -112,7 +114,7 @@ fun HomeFirstPage(modifier: Modifier = Modifier) {
                         }
                         is HomeAppItem -> {
                             val top = if (item.row in 2..3) {
-                                cellH * 2 + (quoteSide - iconSize) * (item.row - 2)
+                                cellH * 2 + (quoteSide - iconSize + AppRowGap) * (item.row - 2)
                             } else {
                                 cellH * item.row
                             }
@@ -135,7 +137,7 @@ fun HomeFirstPage(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(10.dp))
         }
 
-        IosTextEditSheet(
+        IosTextEditDialog(
             visible = editorVisible,
             title = if (target == EditTarget.DATE) "日期文案" else "语录文案",
             values = if (target == EditTarget.DATE) dateLines else quoteLines,
