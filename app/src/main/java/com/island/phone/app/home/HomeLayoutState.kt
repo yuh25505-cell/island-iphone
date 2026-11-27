@@ -49,6 +49,7 @@ internal object HomeCatalog {
 internal class HomeLayoutState private constructor() {
     private val list = mutableStateListOf<HomePlacement>()
     private val folderNames = mutableStateMapOf<Int, String>()
+    private val hidden = mutableStateListOf<String>()
 
     var pageCount by mutableIntStateOf(HOME_PAGE_COUNT)
         private set
@@ -64,10 +65,13 @@ internal class HomeLayoutState private constructor() {
 
     fun folderName(number: Int): String = folderNames[number] ?: FOLDER_DEFAULT_NAME
 
+    fun hiddenWidgets(): List<String> = hidden.toList()
+
     fun encode(): String {
         val parts = ArrayList<String>()
         list.forEach { parts.add("${it.id}:${it.page}:${it.column}:${it.row}") }
         folderNames.entries.forEach { parts.add("#${it.key}=${it.value}") }
+        hidden.forEach { parts.add("!$it") }
         parts.add("@$pageCount")
         return parts.joinToString(";")
     }
@@ -101,6 +105,21 @@ internal class HomeLayoutState private constructor() {
         }
         list.filter { it.page > page }.forEach { put(HomePlacement(it.id, it.page - 1, it.column, it.row)) }
         pageCount -= 1
+        return true
+    }
+
+    fun removeWidget(id: String): Boolean {
+        if (HomeCatalog.items[id] !is HomeWidgetItem) return false
+        if (find(id) == null) return false
+        list.removeAll { it.id == id }
+        if (id !in hidden) hidden.add(id)
+        return true
+    }
+
+    fun addWidget(id: String, page: Int): Boolean {
+        if (id !in hidden) return false
+        if (!placeNear(id, page, 0, 0)) return false
+        hidden.remove(id)
         return true
     }
 
@@ -393,6 +412,9 @@ internal class HomeLayoutState private constructor() {
                 } else if (t.startsWith("@")) {
                     val n = t.substring(1).toIntOrNull()
                     if (n != null) savedCount = n
+                } else if (t.startsWith("!")) {
+                    val w = t.substring(1)
+                    if (HomeCatalog.items[w] is HomeWidgetItem && w !in state.hidden) state.hidden.add(w)
                 }
             }
             val saved = tokens.mapNotNull { parse(it) }
@@ -403,12 +425,13 @@ internal class HomeLayoutState private constructor() {
             saved.filter { it.page == DOCK_PAGE }.sortedBy { it.column }.forEach { state.tryAdd(it) }
             saved.filter { it.page == FOLDER_PAGE }.sortedBy { it.column }.forEach { state.tryAddToFolder(it) }
             state.cleanupFolders()
+            state.hidden.removeAll { state.find(it) != null }
             HomeCatalog.defaults.forEach { d ->
-                if (state.find(d.id) == null) {
+                if (state.find(d.id) == null && d.id !in state.hidden) {
                     if (!state.tryAdd(d)) state.addAnywhere(d.id)
                 }
             }
-            if (HomeCatalog.baseIds.any { state.find(it) == null }) return defaultState()
+            if (HomeCatalog.baseIds.any { state.find(it) == null && it !in state.hidden }) return defaultState()
             state.normalizeDock()
             return state
         }
@@ -421,7 +444,7 @@ internal class HomeLayoutState private constructor() {
         }
 
         private fun parse(token: String): HomePlacement? {
-            if (token.startsWith("#") || token.startsWith("@")) return null
+            if (token.startsWith("#") || token.startsWith("@") || token.startsWith("!")) return null
             val parts = token.split(":")
             if (parts.size != 4) return null
             val page = parts[1].toIntOrNull() ?: return null
