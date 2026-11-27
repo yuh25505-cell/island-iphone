@@ -5,6 +5,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -25,7 +26,13 @@ internal class HomeHit(
 )
 
 @Immutable
-internal class HomeDrop(val page: Int, val column: Int, val row: Int, val dockIndex: Int)
+internal class HomeDrop(
+    val page: Int,
+    val column: Int,
+    val row: Int,
+    val dockIndex: Int,
+    val mergeId: String? = null,
+)
 
 internal fun homeItemRect(item: HomeItem, column: Int, row: Int, m: HomeGridMetrics): HomeRect {
     val top = (m.edge + m.cellH * row).value
@@ -104,7 +111,8 @@ internal class HomeGeometry {
         val item = HomeCatalog.items[id] ?: return null
         val x = dp(pxX + rootX)
         val y = dp(pxY + rootY)
-        if (item is HomeAppItem && inDock(y)) {
+        val movable = item is HomeAppItem && !item.isFolder()
+        if (movable && inDock(y)) {
             val others = layout.dock().count { it.id != id }
             val slot = dp(dockW) / (others + 1)
             val index = floor((x - dp(dockX)) / slot).toInt().coerceIn(0, others)
@@ -112,6 +120,22 @@ internal class HomeGeometry {
         }
         val originX = dp(pagerX) + 16f
         val originY = dp(pagerY)
+        if (movable) {
+            val centerX = x - grabX - originX + m.iconSize.value / 2f
+            val centerY = y - grabY - originY + m.iconSize.value / 2f
+            val reach = m.iconSize.value * 0.3f
+            for (p in layout.onPage(page)) {
+                if (p.id == id) continue
+                val other = HomeCatalog.items[p.id] ?: continue
+                if (other !is HomeAppItem) continue
+                val r = homeItemRect(other, p.column, p.row, m)
+                val cx = r.x + r.w / 2f
+                val cy = r.y + m.iconSize.value / 2f
+                if (abs(centerX - cx) <= reach && abs(centerY - cy) <= reach) {
+                    return HomeDrop(page, p.column, p.row, -1, p.id)
+                }
+            }
+        }
         val inset = if (item is HomeWidgetItem) HomeWidgetInset.value else 0f
         val column = ((x - grabX - originX - inset) / m.cellW.value).roundToInt()
         val row = ((y - grabY - originY - m.edge.value) / m.cellH.value).roundToInt()
