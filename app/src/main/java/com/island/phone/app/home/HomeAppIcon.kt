@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.island.phone.app.home.widget.WidgetLightBackground
 import com.island.phone.core.theme.IslandTheme
 
 @Composable
@@ -37,7 +38,7 @@ fun HomeAppIcon(
     val shape = RoundedCornerShape(size * 0.24f)
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val borderColor = if (colors.isDark) colors.gray4 else colors.gray5
+    val borderColor = if (colors.isDark) colors.gray4 else WidgetLightBackground
     val fontSize = size.value * 0.215f
 
     Box(

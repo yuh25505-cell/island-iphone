@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.island.phone.core.theme.IslandTheme
+import com.island.phone.ui.image.SourceImage
 
 @Immutable
 private class PhotoSlot(val x: Float, val y: Float, val caption: String)
@@ -35,18 +36,24 @@ private val photoSlots = listOf(
 )
 
 @Composable
-fun PhotoWidget(modifier: Modifier = Modifier) {
+fun PhotoWidget(
+    sources: List<String>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = IslandTheme.colors
     BoxWithConstraints(
         modifier
             .fillMaxSize()
+            .widgetTap(onClick)
             .background(widgetBackground(colors.gray6), RoundedCornerShape(30.dp)),
     ) {
         val cardW = maxWidth * 0.238f
         val cardH = maxHeight * 0.68f
-        photoSlots.forEach { slot ->
+        photoSlots.forEachIndexed { index, slot ->
             PhotoCard(
                 caption = slot.caption,
+                source = sources.getOrElse(index) { "" },
                 modifier = Modifier
                     .offset(x = maxWidth * slot.x, y = maxHeight * slot.y)
                     .size(width = cardW, height = cardH),
@@ -56,7 +63,7 @@ fun PhotoWidget(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun PhotoCard(caption: String, modifier: Modifier) {
+private fun PhotoCard(caption: String, source: String, modifier: Modifier) {
     val colors = IslandTheme.colors
     val shape = RoundedCornerShape(3.dp)
     val borderColor = if (colors.isDark) colors.gray4 else colors.gray5
@@ -71,7 +78,9 @@ private fun PhotoCard(caption: String, modifier: Modifier) {
                 .fillMaxWidth()
                 .weight(0.76f)
                 .background(colors.gray4),
-        )
+        ) {
+            if (source.isNotBlank()) SourceImage(source, Modifier.fillMaxSize())
+        }
         Box(
             Modifier.fillMaxWidth().weight(0.24f),
             contentAlignment = Alignment.CenterStart,

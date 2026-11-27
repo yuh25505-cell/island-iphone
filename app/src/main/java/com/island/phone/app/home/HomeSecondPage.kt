@@ -15,7 +15,14 @@ import com.island.phone.app.home.widget.PhotoWidget
 import com.island.phone.app.home.widget.WeekWidget
 
 @Composable
-fun HomeSecondPage(modifier: Modifier = Modifier) {
+fun HomeSecondPage(
+    weekTexts: List<String>,
+    weekAvatar: String,
+    photoSources: List<String>,
+    onEditWeek: () -> Unit,
+    onEditPhotos: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     BoxWithConstraints(
         modifier
             .fillMaxSize()
@@ -39,8 +46,15 @@ fun HomeSecondPage(modifier: Modifier = Modifier) {
                             ),
                     ) {
                         when (item.kind) {
-                            HomeWidgetKind.WEEK -> WeekWidget()
-                            HomeWidgetKind.PHOTOS -> PhotoWidget()
+                            HomeWidgetKind.WEEK -> WeekWidget(
+                                texts = weekTexts,
+                                avatar = weekAvatar,
+                                onClick = onEditWeek,
+                            )
+                            HomeWidgetKind.PHOTOS -> PhotoWidget(
+                                sources = photoSources,
+                                onClick = onEditPhotos,
+                            )
                             HomeWidgetKind.DATE, HomeWidgetKind.QUOTE, HomeWidgetKind.WORD -> Unit
                         }
                     }
