@@ -1,6 +1,10 @@
 package com.island.phone.app.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -18,38 +23,62 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.island.phone.app.home.widget.DateWidget
+import com.island.phone.app.home.widget.PhotoWidget
+import com.island.phone.app.home.widget.QuoteWidget
+import com.island.phone.app.home.widget.WeekWidget
+import com.island.phone.app.home.widget.WordWidget
 import com.island.phone.app.home.widget.weekDateText
 import com.island.phone.app.home.widget.weekDayText
 import com.island.phone.core.theme.IslandTheme
 import com.island.phone.data.files.HomeWidgetImages
+import com.island.phone.data.settings.HomeLayoutStore
 import com.island.phone.data.settings.HomeWidgetTextStore
 import com.island.phone.ui.dialog.IosMediaEditDialog
 import com.island.phone.ui.dialog.IosTextEditDialog
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 
-private const val HOME_PAGES = 2
-
 private enum class EditTarget { DATE, QUOTE, WEEK, PHOTO }
 
 @Composable
 fun HomePager(modifier: Modifier = Modifier) {
+    val colors = IslandTheme.colors
     val context = LocalContext.current.applicationContext
     val store = remember { HomeWidgetTextStore(context) }
+    val layoutStore = remember { HomeLayoutStore(context) }
     val scope = rememberCoroutineScope()
     val dateLines by store.dateLines.collectAsStateWithLifecycle(
         initialValue = remember { runBlocking { store.dateLines.first() } },
@@ -69,52 +98,261 @@ fun HomePager(modifier: Modifier = Modifier) {
     val photoCaptions by store.photoCaptions.collectAsStateWithLifecycle(
         initialValue = remember { runBlocking { store.photoCaptions.first() } },
     )
+    val layout = remember { HomeLayoutState.load(runBlocking { layoutStore.placements.first() }) }
+    val geo = remember { HomeGeometry() }
+    geo.density = LocalDensity.current.density
+
     var editorVisible by remember { mutableStateOf(false) }
     var target by remember { mutableStateOf(EditTarget.DATE) }
+    var editing by remember { mutableStateOf(false) }
+    var dragId by remember { mutableStateOf<String?>(null) }
+    var dragFromDock by remember { mutableStateOf(false) }
+    var dragPointer by remember { mutableStateOf(Offset.Zero) }
+    var dragGrab by remember { mutableStateOf(Offset.Zero) }
+    var dragSize by remember { mutableStateOf(Offset.Zero) }
+    var edgeDir by remember { mutableIntStateOf(0) }
     val today = remember(editorVisible) { LocalDate.now() }
-    val pagerState = rememberPagerState(pageCount = { HOME_PAGES })
+    val pagerState = rememberPagerState(pageCount = { HOME_PAGE_COUNT })
+    val angle = rememberWobbleAngle(editing)
 
-    Box(modifier) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                userScrollEnabled = !editorVisible,
-            ) { page ->
-                if (page == 0) {
-                    HomeFirstPage(
-                        dateLines = dateLines,
-                        quoteLines = quoteLines,
-                        onEditDate = {
-                            target = EditTarget.DATE
-                            editorVisible = true
-                        },
-                        onEditQuote = {
-                            target = EditTarget.QUOTE
-                            editorVisible = true
+    BackHandler(enabled = editing) {
+        editing = false
+        dragId = null
+        edgeDir = 0
+    }
+
+    LaunchedEffect(dragId, edgeDir) {
+        if (dragId != null && edgeDir != 0) {
+            delay(550)
+            val next = (pagerState.currentPage + edgeDir).coerceIn(0, HOME_PAGE_COUNT - 1)
+            pagerState.animateScrollToPage(next)
+        }
+    }
+
+    BoxWithConstraints(
+        modifier
+            .onGloballyPositioned { c ->
+                val p = c.positionInWindow()
+                geo.rootX = p.x
+                geo.rootY = p.y
+                geo.rootW = c.size.width.toFloat()
+            }
+            .pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { offset ->
+                        if (!editorVisible) {
+                            editing = true
+                            val hit = geo.hit(layout, pagerState.currentPage, offset.x, offset.y)
+                            if (hit != null && !pagerState.isScrollInProgress) {
+                                dragId = hit.id
+                                dragFromDock = hit.fromDock
+                                dragSize = Offset(hit.width, hit.height)
+                                dragGrab = Offset(
+                                    (offset.x + geo.rootX) / geo.density - hit.left,
+                                    (offset.y + geo.rootY) / geo.density - hit.top,
+                                )
+                                dragPointer = offset
+                            }
+                        }
+                    },
+                    onDrag = { change, _ ->
+                        if (dragId != null) {
+                            change.consume()
+                            dragPointer = change.position
+                            val edgePx = 28f * geo.density
+                            edgeDir = if (change.position.x < edgePx) {
+                                -1
+                            } else if (change.position.x > geo.rootW - edgePx) {
+                                1
+                            } else {
+                                0
+                            }
+                        }
+                    },
+                    onDragEnd = {
+                        val id = dragId
+                        if (id != null) {
+                            val drop = geo.drop(
+                                layout, id, pagerState.currentPage,
+                                dragPointer.x, dragPointer.y, dragGrab.x, dragGrab.y,
+                            )
+                            if (drop != null) {
+                                val moved = if (drop.dockIndex >= 0) {
+                                    layout.moveToDock(id, drop.dockIndex)
+                                } else {
+                                    layout.moveToGrid(id, drop.page, drop.column, drop.row)
+                                }
+                                if (moved) scope.launch { layoutStore.save(layout.encode()) }
+                            }
+                        }
+                        dragId = null
+                        edgeDir = 0
+                    },
+                    onDragCancel = {
+                        dragId = null
+                        edgeDir = 0
+                    },
+                )
+            },
+    ) {
+        val dockCellW = (maxWidth - 32.dp) / HOME_COLUMNS
+        val dockIcon: Dp = minOf(60.dp, dockCellW - 14.dp)
+        SideEffect { geo.dockIcon = dockIcon.value }
+
+        val itemContent: @Composable (HomeItem, Boolean, Dp) -> Unit = { item, inDock, iconSize ->
+            when (item) {
+                is HomeWidgetItem -> when (item.kind) {
+                    HomeWidgetKind.DATE -> DateWidget(
+                        lines = dateLines,
+                        onClick = {
+                            if (!editing) {
+                                target = EditTarget.DATE
+                                editorVisible = true
+                            }
                         },
                     )
+                    HomeWidgetKind.QUOTE -> QuoteWidget(
+                        lines = quoteLines,
+                        onClick = {
+                            if (!editing) {
+                                target = EditTarget.QUOTE
+                                editorVisible = true
+                            }
+                        },
+                    )
+                    HomeWidgetKind.WORD -> WordWidget()
+                    HomeWidgetKind.WEEK -> WeekWidget(
+                        texts = weekTexts,
+                        avatar = weekAvatar,
+                        onClick = {
+                            if (!editing) {
+                                target = EditTarget.WEEK
+                                editorVisible = true
+                            }
+                        },
+                    )
+                    HomeWidgetKind.PHOTOS -> PhotoWidget(
+                        sources = photoSources,
+                        captions = photoCaptions,
+                        onClick = {
+                            if (!editing) {
+                                target = EditTarget.PHOTO
+                                editorVisible = true
+                            }
+                        },
+                    )
+                }
+                is HomeAppItem -> if (inDock) {
+                    HomeAppIcon(name = item.iconName, size = iconSize)
                 } else {
-                    HomeSecondPage(
-                        weekTexts = weekTexts,
-                        weekAvatar = weekAvatar,
-                        photoSources = photoSources,
-                        photoCaptions = photoCaptions,
-                        onEditWeek = {
-                            target = EditTarget.WEEK
-                            editorVisible = true
-                        },
-                        onEditPhotos = {
-                            target = EditTarget.PHOTO
-                            editorVisible = true
-                        },
+                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        HomeAppIcon(name = item.iconName, size = iconSize)
+                        HomeItemLabel(item.label)
+                    }
+                }
+            }
+        }
+
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            BoxWithConstraints(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .onGloballyPositioned { c ->
+                        val p = c.positionInWindow()
+                        geo.pagerX = p.x
+                        geo.pagerY = p.y
+                    },
+            ) {
+                val m = remember(maxWidth, maxHeight) { homeGridMetrics(maxWidth - 32.dp, maxHeight) }
+                SideEffect { geo.metrics = m }
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    userScrollEnabled = !editorVisible && dragId == null,
+                ) { page ->
+                    HomePage(
+                        page = page,
+                        layout = layout,
+                        metrics = m,
+                        hiddenId = dragId,
+                        editing = editing,
+                        angle = angle,
+                        content = itemContent,
                     )
                 }
             }
             HomePageDots(pagerState.currentPage, Modifier.align(Alignment.CenterHorizontally))
             Spacer(Modifier.height(14.dp))
-            HomeDock()
+            HomeDock(
+                layout = layout,
+                cellW = dockCellW,
+                iconSize = dockIcon,
+                hiddenId = dragId,
+                editing = editing,
+                angle = angle,
+                onPlaced = { c ->
+                    val p = c.positionInWindow()
+                    geo.dockX = p.x
+                    geo.dockY = p.y
+                    geo.dockW = c.size.width.toFloat()
+                    geo.dockH = c.size.height.toFloat()
+                },
+                content = itemContent,
+            )
             Spacer(Modifier.height(10.dp))
+        }
+
+        val activeItem = dragId?.let { HomeCatalog.items[it] }
+        if (activeItem != null) {
+            val d = geo.density
+            val overlayIcon = if (dragFromDock) dockIcon else (geo.metrics?.iconSize ?: dockIcon)
+            Box(
+                Modifier
+                    .offset(x = (dragPointer.x / d - dragGrab.x).dp, y = (dragPointer.y / d - dragGrab.y).dp)
+                    .size(width = dragSize.x.dp, height = dragSize.y.dp)
+                    .graphicsLayer {
+                        scaleX = 1.06f
+                        scaleY = 1.06f
+                        alpha = 0.95f
+                    },
+            ) {
+                itemContent(activeItem, dragFromDock, overlayIcon)
+            }
+        }
+
+        if (editing) {
+            val doneSource = remember { MutableInteractionSource() }
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .height(44.dp)
+                    .clickable(interactionSource = doneSource, indication = null) {
+                        editing = false
+                        dragId = null
+                        edgeDir = 0
+                    }
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    Modifier
+                        .height(30.dp)
+                        .background(colors.fill, RoundedCornerShape(50))
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = "完成",
+                        style = TextStyle(
+                            color = colors.accent,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    )
+                }
+            }
         }
 
         IosTextEditDialog(
@@ -206,7 +444,7 @@ fun HomePager(modifier: Modifier = Modifier) {
 private fun HomePageDots(current: Int, modifier: Modifier = Modifier) {
     val colors = IslandTheme.colors
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        repeat(HOME_PAGES) { index ->
+        repeat(HOME_PAGE_COUNT) { index ->
             Box(
                 Modifier
                     .size(8.dp)
@@ -217,14 +455,38 @@ private fun HomePageDots(current: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun HomeDock() {
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        val cellW = maxWidth / HOME_COLUMNS
-        val iconSize: Dp = minOf(60.dp, cellW - 14.dp)
-        Row(Modifier.fillMaxWidth()) {
-            HomeFirstPageLayout.dock.forEach { item ->
-                Box(Modifier.width(cellW), contentAlignment = Alignment.Center) {
-                    HomeAppIcon(name = item.iconName, size = iconSize)
+private fun HomeDock(
+    layout: HomeLayoutState,
+    cellW: Dp,
+    iconSize: Dp,
+    hiddenId: String?,
+    editing: Boolean,
+    angle: State<Float>,
+    onPlaced: (LayoutCoordinates) -> Unit,
+    content: @Composable (HomeItem, Boolean, Dp) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(iconSize)
+            .onGloballyPositioned(onPlaced),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        layout.dock().forEach { p ->
+            val item = HomeCatalog.items[p.id]
+            if (item != null) {
+                key(p.id) {
+                    Box(
+                        Modifier
+                            .width(cellW)
+                            .height(iconSize)
+                            .homeWobble(item, editing, angle),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (p.id != hiddenId) content(item, true, iconSize)
+                    }
                 }
             }
         }

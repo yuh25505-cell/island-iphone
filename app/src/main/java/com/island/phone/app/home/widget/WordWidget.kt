@@ -50,7 +50,7 @@ private val words = listOf(
     WordEntry("wander", "v. 漫步；游荡", "We wander along the shore.", "我们沿着海岸漫步。"),
     WordEntry("harbor", "n. 港湾", "The boat rests in the harbor.", "小船停靠在港湾里。"),
     WordEntry("breeze", "n. 微风", "A breeze moves the leaves.", "微风吹动树叶。"),
-    WordEntry("twilight", "n. 黄昂", "Twilight paints the sky.", "黄昂染红了天空。"),
+    WordEntry("twilight", "n. 黄昏", "Twilight paints the sky.", "黄昏染红了天空。"),
     WordEntry("whisper", "v. 低语", "He likes to whisper.", "他喜欢轻声低语。"),
     WordEntry("serene", "adj. 宁静的", "The lake is serene.", "湖面很宁静。"),
     WordEntry("cherish", "v. 珍惜", "Cherish every moment.", "珍惜每一刻。"),
