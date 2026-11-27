@@ -5,7 +5,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -39,6 +38,17 @@ import com.island.phone.R
 import com.island.phone.core.theme.IslandTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
+object BootTimeline {
+    const val TEXT1_START = 500f
+    const val TEXT1_END = 1700f
+    const val TEXT2_START = 1500f
+    const val TEXT2_END = 2700f
+    const val TOTAL = 4200
+}
+
+internal fun progressOf(t: Float, from: Float, to: Float): Float =
+    ((t - from) / (to - from)).coerceIn(0f, 1f)
 
 @Composable
 fun BootScreen(onFinished: () -> Unit) {
@@ -75,9 +85,6 @@ fun BootScreen(onFinished: () -> Unit) {
 
     BackHandler { skipped = true }
 
-    val water = colors.accent
-    val highlight = Color.White.copy(alpha = if (colors.isDark) 0.7f else 0.95f)
-
     Box(
         Modifier
             .fillMaxSize()
@@ -85,9 +92,6 @@ fun BootScreen(onFinished: () -> Unit) {
             .background(colors.background)
             .pointerInput(Unit) { detectTapGestures { skipped = true } },
     ) {
-        Canvas(Modifier.fillMaxSize()) {
-            drawRainIntro(timeMs(), water, highlight)
-        }
         Column(
             Modifier
                 .align(Alignment.Center)
