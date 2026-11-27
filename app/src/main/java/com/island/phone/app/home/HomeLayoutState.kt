@@ -148,6 +148,21 @@ internal class HomeLayoutState private constructor() {
         return true
     }
 
+    fun reorderInFolder(id: String, index: Int): Boolean {
+        val current = find(id) ?: return false
+        if (current.page != FOLDER_PAGE) return false
+        val n = current.row
+        val order = folderApps(n).toMutableList()
+        val from = order.indexOf(id)
+        if (from < 0 || order.isEmpty()) return false
+        val to = index.coerceIn(0, order.size - 1)
+        if (from == to) return false
+        order.removeAt(from)
+        order.add(to, id)
+        order.forEachIndexed { i, appId -> put(HomePlacement(appId, FOLDER_PAGE, i, n)) }
+        return true
+    }
+
     fun dissolveFolder(number: Int): Boolean {
         val folder = find(folderIdOf(number)) ?: return false
         val apps = folderApps(number)
