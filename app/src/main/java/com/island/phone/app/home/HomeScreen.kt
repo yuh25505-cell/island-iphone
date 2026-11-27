@@ -7,9 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,18 +30,11 @@ import com.island.phone.ui.dialog.SheetAction
 @Composable
 fun HomeScreen(mode: ThemeMode, onModeChange: (ThemeMode) -> Unit) {
     val colors = IslandTheme.colors
+    // 日间/夜间/跟随系统的选择弹窗和按钮保留着，主屏幕不再显示按钮，等外观 App 做好后改从那里打开
     var sheetVisible by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().background(colors.background)) {
         HomeFirstPage(Modifier.fillMaxSize())
-
-        ThemeButton(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .padding(top = 8.dp, end = 8.dp),
-            onClick = { sheetVisible = true },
-        )
 
         IosActionSheet(
             visible = sheetVisible,
@@ -76,6 +67,7 @@ fun HomeScreen(mode: ThemeMode, onModeChange: (ThemeMode) -> Unit) {
     }
 }
 
+@Suppress("unused")
 @Composable
 private fun ThemeButton(modifier: Modifier, onClick: () -> Unit) {
     val color = IslandTheme.colors.accent

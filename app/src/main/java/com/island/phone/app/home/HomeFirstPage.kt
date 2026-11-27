@@ -17,12 +17,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,67 +34,128 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.island.phone.app.home.widget.DateWidget
 import com.island.phone.app.home.widget.MusicWidget
 import com.island.phone.app.home.widget.QuoteWidget
 import com.island.phone.core.theme.IslandTheme
+import com.island.phone.data.settings.HomeWidgetTextStore
+import com.island.phone.ui.dialog.IosTextEditSheet
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 private val LabelArea = 22.dp
+private val WidgetGap = 10.dp
+private val WidgetInset = 4.dp
+
+private enum class EditTarget { DATE, QUOTE }
 
 @Composable
 fun HomeFirstPage(modifier: Modifier = Modifier) {
-    Column(modifier.statusBarsPadding().navigationBarsPadding()) {
-        Spacer(Modifier.height(52.dp))
-        BoxWithConstraints(
-            Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 16.dp),
-        ) {
-            val cellW = maxWidth / HOME_COLUMNS
-            val cellH = maxHeight / HOME_ROWS
-            HomeFirstPageLayout.items.forEach { item ->
-                Box(
-                    Modifier
-                        .offset(x = cellW * item.column, y = cellH * item.row)
-                        .size(width = cellW * item.columnSpan, height = cellH * item.rowSpan),
-                ) {
-                    HomeItemView(item, cellW, cellH)
-                }
-            }
-        }
-        HomePageDots(Modifier.align(Alignment.CenterHorizontally))
-        Spacer(Modifier.height(14.dp))
-        HomeDock()
-        Spacer(Modifier.height(10.dp))
-    }
-}
+    val context = LocalContext.current.applicationContext
+    val store = remember { HomeWidgetTextStore(context) }
+    val scope = rememberCoroutineScope()
+    val dateLines by store.dateLines.collectAsStateWithLifecycle(
+        initialValue = remember { runBlocking { store.dateLines.first() } },
+    )
+    val quoteLines by store.quoteLines.collectAsStateWithLifecycle(
+        initialValue = remember { runBlocking { store.quoteLines.first() } },
+    )
+    var editorVisible by remember { mutableStateOf(false) }
+    var target by remember { mutableStateOf(EditTarget.DATE) }
 
-@Composable
-private fun HomeItemView(item: HomeItem, cellW: Dp, cellH: Dp) {
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        when (item) {
-            is HomeAppItem -> {
-                val iconSize = minOf(60.dp, cellW - 14.dp, cellH - LabelArea - 2.dp)
-                Spacer(Modifier.height(2.dp))
-                HomeAppIcon(name = item.iconName, size = iconSize)
-            }
-            is HomeWidgetItem -> {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(horizontal = 4.dp),
-                ) {
-                    when (item.kind) {
-                        HomeWidgetKind.DATE -> DateWidget()
-                        HomeWidgetKind.QUOTE -> QuoteWidget()
-                        HomeWidgetKind.MUSIC -> MusicWidget()
+    Box(modifier) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            Spacer(Modifier.height(16.dp))
+            BoxWithConstraints(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+            ) {
+                val cellW = maxWidth / HOME_COLUMNS
+                val idealCellH = (cellW * 2 - WidgetInset * 2 + LabelArea + WidgetGap) / 2
+                val cellH = minOf(idealCellH, maxHeight / HOME_ROWS)
+                val iconSize = minOf(60.dp, cellW - 14.dp, cellH - LabelArea)
+                val quoteSide = minOf(cellW * 2 - WidgetInset * 2, cellH * 2 - LabelArea - WidgetGap)
+
+                HomeFirstPageLayout.items.forEach { item ->
+                    when (item) {
+                        is HomeWidgetItem -> {
+                            val w = if (item.square) quoteSide else cellW * item.columnSpan - WidgetInset * 2
+                            val h = if (item.square) quoteSide else cellH * item.rowSpan - WidgetGap
+                            Box(
+                                Modifier
+                                    .offset(x = cellW * item.column + WidgetInset, y = cellH * item.row)
+                                    .size(width = w, height = h),
+                            ) {
+                                when (item.kind) {
+                                    HomeWidgetKind.DATE -> DateWidget(
+                                        lines = dateLines,
+                                        onClick = {
+                                            target = EditTarget.DATE
+                                            editorVisible = true
+                                        },
+                                    )
+                                    HomeWidgetKind.QUOTE -> QuoteWidget(
+                                        lines = quoteLines,
+                                        onClick = {
+                                            target = EditTarget.QUOTE
+                                            editorVisible = true
+                                        },
+                                    )
+                                    HomeWidgetKind.MUSIC -> MusicWidget()
+                                }
+                            }
+                        }
+                        is HomeAppItem -> {
+                            val top = if (item.row in 2..3) {
+                                cellH * 2 + (quoteSide - iconSize) * (item.row - 2)
+                            } else {
+                                cellH * item.row
+                            }
+                            Column(
+                                Modifier
+                                    .offset(x = cellW * item.column, y = top)
+                                    .size(width = cellW, height = iconSize + LabelArea),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                HomeAppIcon(name = item.iconName, size = iconSize)
+                                HomeItemLabel(item.label)
+                            }
+                        }
                     }
                 }
             }
+            HomePageDots(Modifier.align(Alignment.CenterHorizontally))
+            Spacer(Modifier.height(14.dp))
+            HomeDock()
+            Spacer(Modifier.height(10.dp))
         }
-        HomeItemLabel(item.label)
+
+        IosTextEditSheet(
+            visible = editorVisible,
+            title = if (target == EditTarget.DATE) "日期文案" else "语录文案",
+            values = if (target == EditTarget.DATE) dateLines else quoteLines,
+            maxLength = 30,
+            cancelText = "取消",
+            saveText = "保存",
+            resetText = "恢复默认",
+            onSave = { lines ->
+                scope.launch {
+                    if (target == EditTarget.DATE) store.setDateLines(lines) else store.setQuoteLines(lines)
+                }
+                editorVisible = false
+            },
+            onReset = {
+                scope.launch {
+                    if (target == EditTarget.DATE) store.resetDateLines() else store.resetQuoteLines()
+                }
+                editorVisible = false
+            },
+            onDismiss = { editorVisible = false },
+        )
     }
 }
 
@@ -115,17 +180,12 @@ private fun HomeItemLabel(text: String) {
 @Composable
 private fun HomePageDots(modifier: Modifier = Modifier) {
     val colors = IslandTheme.colors
-    Row(
-        modifier
-            .background(colors.gray5, RoundedCornerShape(50))
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         repeat(3) { index ->
             Box(
                 Modifier
                     .size(8.dp)
-                    .background(Color.White.copy(alpha = if (index == 0) 1f else 0.5f), CircleShape),
+                    .background(colors.label.copy(alpha = if (index == 0) 0.85f else 0.25f), CircleShape),
             )
         }
     }
@@ -135,7 +195,7 @@ private fun HomePageDots(modifier: Modifier = Modifier) {
 private fun HomeDock() {
     BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         val cellW = maxWidth / HOME_COLUMNS
-        val iconSize = minOf(60.dp, cellW - 14.dp)
+        val iconSize: Dp = minOf(60.dp, cellW - 14.dp)
         Row(Modifier.fillMaxWidth()) {
             HomeFirstPageLayout.dock.forEach { item ->
                 Box(Modifier.width(cellW), contentAlignment = Alignment.Center) {

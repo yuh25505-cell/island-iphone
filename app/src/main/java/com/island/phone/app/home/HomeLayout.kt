@@ -30,12 +30,13 @@ class HomeWidgetItem(
     override val rowSpan: Int,
     override val label: String,
     val kind: HomeWidgetKind,
+    val square: Boolean = false,
 ) : HomeItem
 
 object HomeFirstPageLayout {
     val items: List<HomeItem> = listOf(
         HomeWidgetItem(column = 0, row = 0, columnSpan = 4, rowSpan = 2, label = "日期", kind = HomeWidgetKind.DATE),
-        HomeWidgetItem(column = 0, row = 2, columnSpan = 2, rowSpan = 2, label = "语录", kind = HomeWidgetKind.QUOTE),
+        HomeWidgetItem(column = 0, row = 2, columnSpan = 2, rowSpan = 2, label = "语录", kind = HomeWidgetKind.QUOTE, square = true),
         HomeAppItem(column = 2, row = 2, label = "外观", iconName = "Style"),
         HomeAppItem(column = 3, row = 2, label = "屿年", iconName = "Year"),
         HomeAppItem(column = 2, row = 3, label = "日历", iconName = "Cal"),

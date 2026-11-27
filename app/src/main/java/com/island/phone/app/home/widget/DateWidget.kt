@@ -32,13 +32,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 
-private val dateLines = listOf(
-    "Own the moment",
-    "★ Find your fire",
-    "♥ Rise and shine",
-    "Shine like the stars",
-)
-
 @Composable
 private fun rememberToday(): State<LocalDate> {
     val today = remember { mutableStateOf(LocalDate.now()) }
@@ -53,7 +46,11 @@ private fun rememberToday(): State<LocalDate> {
 }
 
 @Composable
-fun DateWidget(modifier: Modifier = Modifier) {
+fun DateWidget(
+    lines: List<String>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = IslandTheme.colors
     val today by rememberToday()
     val day = today.dayOfMonth.toString()
@@ -63,6 +60,7 @@ fun DateWidget(modifier: Modifier = Modifier) {
     Row(
         modifier
             .fillMaxSize()
+            .widgetTap(onClick)
             .background(colors.gray6, RoundedCornerShape(34.dp))
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -120,9 +118,9 @@ fun DateWidget(modifier: Modifier = Modifier) {
                 .padding(start = 14.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            dateLines.forEach { line ->
+            lines.forEach { line ->
                 BasicText(
-                    text = line,
+                    text = line.ifEmpty { " " },
                     style = TextStyle(
                         color = colors.label,
                         fontSize = 12.sp,

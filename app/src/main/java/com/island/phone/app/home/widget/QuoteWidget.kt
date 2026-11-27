@@ -17,19 +17,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.island.phone.core.theme.IslandTheme
 
-private val quoteLines = listOf(
-    "Make magic happen" to 0.78f,
-    "Own the moment" to 0.3f,
-    "New adventures" to 0.66f,
-    "Find your fire" to 0.3f,
-)
+private val quoteAlphas = listOf(0.78f, 0.3f, 0.66f, 0.3f)
 
 @Composable
-fun QuoteWidget(modifier: Modifier = Modifier) {
+fun QuoteWidget(
+    lines: List<String>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = IslandTheme.colors
     BoxWithConstraints(
         modifier
             .fillMaxSize()
+            .widgetTap(onClick)
             .background(colors.gray5, RoundedCornerShape(30.dp)),
     ) {
         val k = (maxHeight.value / 166f).coerceIn(0.78f, 1f)
@@ -50,11 +50,11 @@ fun QuoteWidget(modifier: Modifier = Modifier) {
                 ),
             )
             Column(verticalArrangement = Arrangement.spacedBy((7 * k).dp)) {
-                quoteLines.forEach { (text, alpha) ->
+                lines.forEachIndexed { index, text ->
                     BasicText(
-                        text = text,
+                        text = text.ifEmpty { " " },
                         style = TextStyle(
-                            color = colors.label.copy(alpha = alpha),
+                            color = colors.label.copy(alpha = quoteAlphas.getOrElse(index) { 0.3f }),
                             fontSize = (14 * k).sp,
                             lineHeight = (18 * k).sp,
                             fontWeight = FontWeight.Medium,
