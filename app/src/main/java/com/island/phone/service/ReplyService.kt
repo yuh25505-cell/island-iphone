@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -38,6 +39,12 @@ class ReplyService : Service() {
         acquireWakeLock()
         if (watcher?.isActive != true) {
             watcher = scope.launch {
+                val renewer = launch {
+                    while (true) {
+                        delay(WAKE_LOCK_RENEW_MS)
+                        acquireWakeLock()
+                    }
+                }
                 var shown = manager.activeCount.value
                 manager.activeCount.first { count ->
                     if (count > 0 && count != shown) {
@@ -47,6 +54,7 @@ class ReplyService : Service() {
                     }
                     count == 0
                 }
+                renewer.cancel()
                 releaseWakeLock()
                 ServiceCompat.stopForeground(this@ReplyService, ServiceCompat.STOP_FOREGROUND_REMOVE)
                 stopSelf(lastStartId)
@@ -83,5 +91,6 @@ class ReplyService : Service() {
 
     private companion object {
         const val WAKE_LOCK_TIMEOUT_MS = 10 * 60 * 1000L
+        const val WAKE_LOCK_RENEW_MS = 5 * 60 * 1000L
     }
 }
