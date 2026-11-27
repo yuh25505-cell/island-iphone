@@ -31,9 +31,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +56,7 @@ fun WeekWidget(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .background(widgetBackground(colors.gray6), RoundedCornerShape(30.dp)),
     ) {
+        val widgetHeight = maxHeight
         Column(
             Modifier
                 .fillMaxSize()
@@ -99,7 +100,7 @@ fun WeekWidget(modifier: Modifier = Modifier) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .height(maxHeight * 0.36f)
+                    .height(widgetHeight * 0.36f)
                     .background(colors.gray5, RoundedCornerShape(14.dp))
                     .padding(start = 6.dp, end = 6.dp, bottom = 6.dp),
             ) {
@@ -126,8 +127,8 @@ fun WeekWidget(modifier: Modifier = Modifier) {
                 ) {
                     for (i in 0 until 7) {
                         val day = start.plusDays(i.toLong())
+                        val isToday = day == today
                         Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                            val isToday = day == today
                             Box(
                                 Modifier
                                     .size(24.dp)
