@@ -9,7 +9,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -28,12 +28,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.island.phone.app.home.widget.WidgetLightBackground
 import com.island.phone.core.theme.IslandTheme
 
@@ -105,9 +114,21 @@ internal fun HomeFolderOverlay(
     apps: List<String>,
     onNameClick: () -> Unit,
     onAppLongPress: (String) -> Unit,
+    onAppDragOut: (String) -> Unit,
+    onAppReorder: (String, Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = IslandTheme.colors
+    val slop = LocalViewConfiguration.current.touchSlop
+    val appsNow by rememberUpdatedState(apps)
+    val longPressNow by rememberUpdatedState(onAppLongPress)
+    val dragOutNow by rememberUpdatedState(onAppDragOut)
+    val reorderNow by rememberUpdatedState(onAppReorder)
+    val cellRects = remember { HashMap<String, Rect>() }
+    var panelRect by remember { mutableStateOf<Rect?>(null) }
+    var dragId by remember { mutableStateOf<String?>(null) }
+    var drag by remember { mutableStateOf(Offset.Zero) }
+    var pointerWin by remember { mutableStateOf(Offset.Zero) }
 
     Box(Modifier.fillMaxSize()) {
         AnimatedVisibility(
@@ -143,8 +164,8 @@ internal fun HomeFolderOverlay(
                     Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 28.dp)
-                        .clip(RoundedCornerShape(32.dp))
-                        .background(colors.secondaryBackground)
+                        .onGloballyPositioned { panelRect = it.boundsInWindow() }
+                        .background(colors.secondaryBackground, RoundedCornerShape(32.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -177,15 +198,63 @@ internal fun HomeFolderOverlay(
                         )
                     }
                     apps.chunked(3).forEach { row ->
-                        Row(Modifier.fillMaxWidth()) {
+                        val liftedId = dragId
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .zIndex(if (liftedId != null && row.contains(liftedId)) 1f else 0f),
+                        ) {
                             row.forEach { id ->
                                 val item = HomeCatalog.items[id] as? HomeAppItem
+                                val lifted = dragId == id
                                 Column(
                                     Modifier
                                         .weight(1f)
                                         .padding(vertical = 8.dp)
+                                        .onGloballyPositioned { cellRects[id] = it.boundsInWindow() }
                                         .pointerInput(id) {
-                                            detectTapGestures(onLongPress = { onAppLongPress(id) })
+                                            detectDragGesturesAfterLongPress(
+                                                onDragStart = { offset ->
+                                                    dragId = id
+                                                    drag = Offset.Zero
+                                                    pointerWin = (cellRects[id]?.topLeft ?: Offset.Zero) + offset
+                                                },
+                                                onDrag = { change, amount ->
+                                                    change.consume()
+                                                    drag += amount
+                                                    pointerWin = (cellRects[id]?.topLeft ?: Offset.Zero) + change.position
+                                                },
+                                                onDragEnd = {
+                                                    val point = pointerWin
+                                                    val moved = drag.getDistance() > slop
+                                                    dragId = null
+                                                    drag = Offset.Zero
+                                                    val panel = panelRect
+                                                    if (!moved) {
+                                                        longPressNow(id)
+                                                    } else if (panel != null && !panel.contains(point)) {
+                                                        dragOutNow(id)
+                                                    } else {
+                                                        val target = appsNow.firstOrNull { other ->
+                                                            other != id && cellRects[other]?.contains(point) == true
+                                                        }
+                                                        if (target != null) reorderNow(id, appsNow.indexOf(target))
+                                                    }
+                                                },
+                                                onDragCancel = {
+                                                    dragId = null
+                                                    drag = Offset.Zero
+                                                },
+                                            )
+                                        }
+                                        .graphicsLayer {
+                                            if (lifted) {
+                                                translationX = drag.x
+                                                translationY = drag.y
+                                                scaleX = 1.12f
+                                                scaleY = 1.12f
+                                                alpha = 0.9f
+                                            }
                                         },
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
