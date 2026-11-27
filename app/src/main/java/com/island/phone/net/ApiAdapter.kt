@@ -23,8 +23,6 @@ internal fun adapterFor(format: ApiFormat): ApiAdapter = when (format) {
 
 private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
 
-internal fun trimBase(base: String): String = base.trim().trimEnd('/')
-
 internal fun roleName(role: ChatRole): String = when (role) {
     ChatRole.SYSTEM -> "system"
     ChatRole.USER -> "user"

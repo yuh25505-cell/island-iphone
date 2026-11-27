@@ -2,6 +2,8 @@ package com.island.phone.net.adapter
 
 import com.island.phone.net.ApiAdapter
 import com.island.phone.net.ApiConfig
+import com.island.phone.net.ApiErrorKind
+import com.island.phone.net.ApiException
 import com.island.phone.net.ChatEvent
 import com.island.phone.net.ChatRequest
 import com.island.phone.net.ChatRole
@@ -9,7 +11,6 @@ import com.island.phone.net.buildPost
 import com.island.phone.net.errorFromJson
 import com.island.phone.net.parseJson
 import com.island.phone.net.textOrNull
-import com.island.phone.net.trimBase
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -52,7 +53,7 @@ internal class ClaudeAdapter : ApiAdapter {
             "Accept" to if (stream) "text/event-stream" else "application/json",
         )
         headers.putAll(config.extraHeaders)
-        return buildPost(endpoint(config.baseUrl), body, headers)
+        return buildPost(config.baseUrl.trim(), body, headers)
     }
 
     override fun parseChunk(eventName: String?, data: String): List<ChatEvent> {
@@ -61,11 +62,7 @@ internal class ClaudeAdapter : ApiAdapter {
         val json = parseJson(trimmed)
         val type = json.textOrNull("type") ?: eventName.orEmpty()
         if (type == "error") {
-            throw errorFromJson(json) ?: com.island.phone.net.ApiException(
-                com.island.phone.net.ApiErrorKind.SERVER,
-                null,
-                "服务返回了错误",
-            )
+            throw errorFromJson(json) ?: ApiException(ApiErrorKind.SERVER, null, "服务返回了错误")
         }
         errorFromJson(json)?.let { throw it }
         return when (type) {
@@ -89,11 +86,7 @@ internal class ClaudeAdapter : ApiAdapter {
     override fun parseFull(body: String): List<ChatEvent> {
         val json = parseJson(body)
         if (json.textOrNull("type") == "error") {
-            throw errorFromJson(json) ?: com.island.phone.net.ApiException(
-                com.island.phone.net.ApiErrorKind.SERVER,
-                null,
-                "服务返回了错误",
-            )
+            throw errorFromJson(json) ?: ApiException(ApiErrorKind.SERVER, null, "服务返回了错误")
         }
         errorFromJson(json)?.let { throw it }
         val text = StringBuilder()
@@ -110,15 +103,6 @@ internal class ClaudeAdapter : ApiAdapter {
         if (text.isNotEmpty()) events.add(ChatEvent.Delta(text.toString()))
         events.add(ChatEvent.Done(json.textOrNull("stop_reason")))
         return events
-    }
-
-    private fun endpoint(base: String): String {
-        val trimmed = trimBase(base)
-        return when {
-            trimmed.endsWith("/messages") -> trimmed
-            trimmed.endsWith("/v1") -> "$trimmed/messages"
-            else -> "$trimmed/v1/messages"
-        }
     }
 
     private companion object {

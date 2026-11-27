@@ -5,4 +5,8 @@
     <string name="theme_light">日间</string>
     <string name="theme_dark">夜间</string>
     <string name="cancel">取消</string>
+    <string name="reply_channel_running">正在回复</string>
+    <string name="reply_channel_done">回复通知</string>
+    <string name="reply_running_text">正在回复中…</string>
+    <string name="reply_failed_text">回复失败，点开查看</string>
 </resources>

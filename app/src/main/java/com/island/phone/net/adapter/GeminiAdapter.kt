@@ -11,7 +11,6 @@ import com.island.phone.net.buildPost
 import com.island.phone.net.errorFromJson
 import com.island.phone.net.parseJson
 import com.island.phone.net.textOrNull
-import com.island.phone.net.trimBase
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -50,7 +49,7 @@ internal class GeminiAdapter : ApiAdapter {
 
         val headers = linkedMapOf("x-goog-api-key" to config.apiKey)
         headers.putAll(config.extraHeaders)
-        return buildPost(endpoint(config.baseUrl, config.model, stream), body, headers)
+        return buildPost(config.baseUrl.trim(), body, headers)
     }
 
     override fun parseChunk(eventName: String?, data: String): List<ChatEvent> {
@@ -84,16 +83,5 @@ internal class GeminiAdapter : ApiAdapter {
         if (text.isNotEmpty()) events.add(ChatEvent.Delta(text.toString()))
         candidate.textOrNull("finishReason")?.let { events.add(ChatEvent.Done(it)) }
         return events
-    }
-
-    private fun endpoint(base: String, model: String, stream: Boolean): String {
-        val trimmed = trimBase(base)
-        val root = if (trimmed.endsWith("/v1beta") || trimmed.endsWith("/v1")) trimmed else "$trimmed/v1beta"
-        val name = model.trim().removePrefix("models/")
-        return if (stream) {
-            "$root/models/$name:streamGenerateContent?alt=sse"
-        } else {
-            "$root/models/$name:generateContent"
-        }
     }
 }

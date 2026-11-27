@@ -9,7 +9,6 @@ import com.island.phone.net.errorFromJson
 import com.island.phone.net.parseJson
 import com.island.phone.net.roleName
 import com.island.phone.net.textOrNull
-import com.island.phone.net.trimBase
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -36,7 +35,7 @@ internal class OpenAiAdapter : ApiAdapter {
             "Accept" to if (stream) "text/event-stream" else "application/json",
         )
         headers.putAll(config.extraHeaders)
-        return buildPost(endpoint(config.baseUrl), body, headers)
+        return buildPost(config.baseUrl.trim(), body, headers)
     }
 
     override fun parseChunk(eventName: String?, data: String): List<ChatEvent> {
@@ -60,16 +59,5 @@ internal class OpenAiAdapter : ApiAdapter {
         choice.optJSONObject("message")?.textOrNull("content")?.let { events.add(ChatEvent.Delta(it)) }
         events.add(ChatEvent.Done(choice.textOrNull("finish_reason")))
         return events
-    }
-
-    private fun endpoint(base: String): String {
-        val trimmed = trimBase(base)
-        if (trimmed.endsWith("/chat/completions")) return trimmed
-        val last = trimmed.substringAfterLast('/')
-        return if (Regex("v\\d+(beta)?").matches(last)) {
-            "$trimmed/chat/completions"
-        } else {
-            "$trimmed/v1/chat/completions"
-        }
     }
 }
