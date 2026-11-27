@@ -10,4 +10,6 @@
     <string name="reply_running_text">正在回复中…</string>
     <string name="reply_running_count">正在回复中（%d）</string>
     <string name="reply_failed_text">回复失败，点开查看</string>
+    <string name="boot_line_1">请让这座孤岛</string>
+    <string name="boot_line_2">因你们而拥有属于它的故事</string>
 </resources>
