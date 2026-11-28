@@ -32,6 +32,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 
+private val DateCardClass = listOf("date-card")
+private val DateDayClass = listOf("date-day")
+private val DateMonthClass = listOf("date-month")
+private val DateWeekdayClass = listOf("date-weekday")
+private val DateDividerClass = listOf("date-divider")
+
 @Composable
 internal fun rememberToday(): State<LocalDate> {
     val today = remember { mutableStateOf(LocalDate.now()) }
@@ -61,7 +67,10 @@ fun DateWidget(
         modifier
             .fillMaxSize()
             .widgetTap(onClick)
-            .background(widgetBackground(colors.gray6), RoundedCornerShape(34.dp))
+            .background(
+                wsBackground(widgetBackground(colors.gray6), DateCardClass),
+                wsShape(DateCardClass, RoundedCornerShape(34.dp)),
+            )
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -75,11 +84,14 @@ fun DateWidget(
                 BasicText(
                     text = day,
                     modifier = Modifier.align(Alignment.TopCenter),
-                    style = TextStyle(
-                        color = colors.label.copy(alpha = 0.38f),
-                        fontSize = 92.sp,
-                        lineHeight = 100.sp,
-                        fontWeight = FontWeight.Black,
+                    style = wsText(
+                        TextStyle(
+                            color = colors.label.copy(alpha = 0.38f),
+                            fontSize = 92.sp,
+                            lineHeight = 100.sp,
+                            fontWeight = FontWeight.Black,
+                        ),
+                        DateDayClass,
                     ),
                 )
                 BasicText(
@@ -87,10 +99,13 @@ fun DateWidget(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .offset(y = 62.dp),
-                    style = TextStyle(
-                        color = colors.label,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.SemiBold,
+                    style = wsText(
+                        TextStyle(
+                            color = colors.label,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        DateMonthClass,
                     ),
                 )
                 BasicText(
@@ -98,10 +113,13 @@ fun DateWidget(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .offset(y = 96.dp),
-                    style = TextStyle(
-                        color = colors.label,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Normal,
+                    style = wsText(
+                        TextStyle(
+                            color = colors.label,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Normal,
+                        ),
+                        DateWeekdayClass,
                     ),
                 )
             }
@@ -110,7 +128,7 @@ fun DateWidget(
             Modifier
                 .width(1.5.dp)
                 .height(64.dp)
-                .background(colors.label),
+                .background(wsBackground(colors.label, DateDividerClass)),
         )
         Column(
             Modifier
@@ -118,12 +136,13 @@ fun DateWidget(
                 .padding(start = 14.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            lines.forEach { line ->
+            lines.forEachIndexed { index, line ->
                 WidgetText(
                     text = line,
                     size = 12f,
                     lineHeight = 19f,
                     color = colors.label,
+                    classes = listOf("date-line", "date-line-${index + 1}"),
                 )
             }
         }
