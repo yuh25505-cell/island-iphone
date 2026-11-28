@@ -48,6 +48,15 @@ import java.util.Locale
 
 private val weekNames = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
 
+private val WeekAvatarClass = listOf("week-avatar")
+private val WeekPillClass = listOf("week-pill")
+private val WeekPillTextClass = listOf("week-pill-text")
+private val WeekBarClass = listOf("week-bar")
+private val WeekNameClass = listOf("week-name")
+private val WeekDaysClass = listOf("week-days")
+private val WeekDayClass = listOf("week-day")
+private val WeekTodayClass = listOf("week-today")
+
 internal fun weekDateText(today: LocalDate): String =
     today.format(DateTimeFormatter.ofPattern("MM'月'dd'日'"))
 
@@ -81,7 +90,7 @@ fun WeekWidget(
                         .fillMaxHeight()
                         .aspectRatio(1f)
                         .clip(CircleShape)
-                        .background(colors.gray4),
+                        .background(wsBackground(colors.gray4, WeekAvatarClass)),
                 ) {
                     if (avatar.isNotBlank()) SourceImage(avatar, Modifier.fillMaxSize())
                 }
@@ -107,7 +116,10 @@ fun WeekWidget(
                 Modifier
                     .fillMaxWidth()
                     .height(widgetHeight * 0.36f)
-                    .background(blockColor, RoundedCornerShape(14.dp))
+                    .background(
+                        wsBackground(blockColor, WeekBarClass),
+                        wsShape(WeekBarClass, RoundedCornerShape(14.dp)),
+                    )
                     .padding(start = 6.dp, end = 6.dp, bottom = 6.dp),
             ) {
                 Row(Modifier.fillMaxWidth().weight(0.4f)) {
@@ -115,10 +127,13 @@ fun WeekWidget(
                         Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
                             BasicText(
                                 text = name,
-                                style = TextStyle(
-                                    color = colors.label,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                style = wsText(
+                                    TextStyle(
+                                        color = colors.label,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    ),
+                                    WeekNameClass,
                                 ),
                                 maxLines = 1,
                             )
@@ -129,7 +144,10 @@ fun WeekWidget(
                     Modifier
                         .fillMaxWidth()
                         .weight(0.6f)
-                        .background(colors.groupedCard, RoundedCornerShape(12.dp)),
+                        .background(
+                            wsBackground(colors.groupedCard, WeekDaysClass),
+                            wsShape(WeekDaysClass, RoundedCornerShape(12.dp)),
+                        ),
                 ) {
                     for (i in 0 until 7) {
                         val day = start.plusDays(i.toLong())
@@ -138,15 +156,21 @@ fun WeekWidget(
                             Box(
                                 Modifier
                                     .size(24.dp)
-                                    .background(if (isToday) colors.gray else Color.Transparent, CircleShape),
+                                    .background(
+                                        if (isToday) wsBackground(colors.gray, WeekTodayClass) else Color.Transparent,
+                                        CircleShape,
+                                    ),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 BasicText(
                                     text = day.dayOfMonth.toString(),
-                                    style = TextStyle(
-                                        color = colors.label,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
+                                    style = wsText(
+                                        TextStyle(
+                                            color = colors.label,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                        ),
+                                        WeekDayClass,
                                     ),
                                     maxLines = 1,
                                 )
@@ -208,7 +232,10 @@ private fun InfoPill(color: Color, maxWidth: Dp, content: @Composable RowScope.(
         Modifier
             .height(28.dp)
             .widthIn(max = maxWidth)
-            .background(color, RoundedCornerShape(50))
+            .background(
+                wsBackground(color, WeekPillClass),
+                wsShape(WeekPillClass, RoundedCornerShape(50)),
+            )
             .padding(horizontal = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
@@ -218,13 +245,14 @@ private fun InfoPill(color: Color, maxWidth: Dp, content: @Composable RowScope.(
 @Composable
 private fun RowScope.PillContent(text: String) {
     val colors = IslandTheme.colors
+    val glyphColor = wsColor(colors.label, WeekPillTextClass)
     val parts = remember(text) { parseGlyphText(text) }
     parts.forEach { part ->
         when (part) {
             is GlyphPart.Text -> PillText(part.value)
-            GlyphPart.Headphone -> HeadphoneGlyph(colors.label, 12.dp)
-            GlyphPart.Play -> PlayGlyph(colors.label)
-            GlyphPart.Wave -> WaveGlyph(colors.label)
+            GlyphPart.Headphone -> HeadphoneGlyph(glyphColor, 12.dp)
+            GlyphPart.Play -> PlayGlyph(glyphColor)
+            GlyphPart.Wave -> WaveGlyph(glyphColor)
         }
     }
 }
@@ -235,10 +263,13 @@ private fun RowScope.PillText(text: String) {
     BasicText(
         text = text,
         modifier = Modifier.weight(1f, fill = false),
-        style = TextStyle(
-            color = colors.label,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
+        style = wsText(
+            TextStyle(
+                color = colors.label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            ),
+            WeekPillTextClass,
         ),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
