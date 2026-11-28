@@ -1,6 +1,7 @@
 package com.island.phone.data.settings
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -10,87 +11,91 @@ import kotlinx.coroutines.flow.map
 private val Context.homeWidgetDataStore by preferencesDataStore(name = "home_widgets")
 
 class HomeWidgetTextStore(private val context: Context) {
-    private val dateKey = stringPreferencesKey("date_lines")
-    private val quoteKey = stringPreferencesKey("quote_lines")
-    private val weekTextKey = stringPreferencesKey("week_texts")
-    private val weekTextGlyphKey = stringPreferencesKey("week_texts_glyph")
-    private val weekAvatarKey = stringPreferencesKey("week_avatar")
-    private val photoKey = stringPreferencesKey("photo_sources")
-    private val photoCaptionKey = stringPreferencesKey("photo_captions")
+    private fun key(name: String, copy: Int): Preferences.Key<String> =
+        stringPreferencesKey(if (copy == 0) name else "${name}_c$copy")
 
-    val dateLines: Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
-        decode(prefs[dateKey], DefaultDateLines)
+    val dateLines: Flow<List<String>> = dateLinesOf(0)
+    val quoteLines: Flow<List<String>> = quoteLinesOf(0)
+    val weekTexts: Flow<List<String>> = weekTextsOf(0)
+    val weekAvatar: Flow<String> = weekAvatarOf(0)
+    val photoSources: Flow<List<String>> = photoSourcesOf(0)
+    val photoCaptions: Flow<List<String>> = photoCaptionsOf(0)
+
+    fun dateLinesOf(copy: Int): Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
+        decode(prefs[key(DATE, copy)], DefaultDateLines)
     }
 
-    val quoteLines: Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
-        decode(prefs[quoteKey], DefaultQuoteLines)
+    fun quoteLinesOf(copy: Int): Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
+        decode(prefs[key(QUOTE, copy)], DefaultQuoteLines)
     }
 
-    val weekTexts: Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
-        val saved = prefs[weekTextGlyphKey]
+    fun weekTextsOf(copy: Int): Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
+        val saved = prefs[key(WEEK_GLYPH, copy)]
         if (saved != null) {
             decode(saved, DefaultWeekTexts)
+        } else if (copy != 0) {
+            DefaultWeekTexts
         } else {
-            val old = prefs[weekTextKey]
+            val old = prefs[key(WEEK_OLD, 0)]
             if (old == null) DefaultWeekTexts else upgradeOldWeekTexts(decode(old, EmptyWeekTexts))
         }
     }
 
-    val weekAvatar: Flow<String> = context.homeWidgetDataStore.data.map { prefs ->
-        prefs[weekAvatarKey] ?: ""
+    fun weekAvatarOf(copy: Int): Flow<String> = context.homeWidgetDataStore.data.map { prefs ->
+        prefs[key(WEEK_AVATAR, copy)] ?: ""
     }
 
-    val photoSources: Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
-        decode(prefs[photoKey], DefaultPhotoSources)
+    fun photoSourcesOf(copy: Int): Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
+        decode(prefs[key(PHOTO, copy)], DefaultPhotoSources)
     }
 
-    val photoCaptions: Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
-        decode(prefs[photoCaptionKey], DefaultPhotoCaptions)
+    fun photoCaptionsOf(copy: Int): Flow<List<String>> = context.homeWidgetDataStore.data.map { prefs ->
+        decode(prefs[key(PHOTO_CAPTION, copy)], DefaultPhotoCaptions)
     }
 
-    suspend fun setDateLines(lines: List<String>) {
-        context.homeWidgetDataStore.edit { prefs -> prefs[dateKey] = encode(lines) }
+    suspend fun setDateLines(lines: List<String>, copy: Int = 0) {
+        context.homeWidgetDataStore.edit { prefs -> prefs[key(DATE, copy)] = encode(lines) }
     }
 
-    suspend fun setQuoteLines(lines: List<String>) {
-        context.homeWidgetDataStore.edit { prefs -> prefs[quoteKey] = encode(lines) }
+    suspend fun setQuoteLines(lines: List<String>, copy: Int = 0) {
+        context.homeWidgetDataStore.edit { prefs -> prefs[key(QUOTE, copy)] = encode(lines) }
     }
 
-    suspend fun setWeek(avatar: String, texts: List<String>) {
+    suspend fun setWeek(avatar: String, texts: List<String>, copy: Int = 0) {
         context.homeWidgetDataStore.edit { prefs ->
-            prefs[weekTextGlyphKey] = encode(texts)
-            prefs.remove(weekTextKey)
-            prefs[weekAvatarKey] = avatar
+            prefs[key(WEEK_GLYPH, copy)] = encode(texts)
+            prefs.remove(key(WEEK_OLD, copy))
+            prefs[key(WEEK_AVATAR, copy)] = avatar
         }
     }
 
-    suspend fun setPhotos(sources: List<String>, captions: List<String>? = null) {
+    suspend fun setPhotos(sources: List<String>, captions: List<String>? = null, copy: Int = 0) {
         context.homeWidgetDataStore.edit { prefs ->
-            prefs[photoKey] = encode(sources)
-            if (captions != null) prefs[photoCaptionKey] = encode(captions)
+            prefs[key(PHOTO, copy)] = encode(sources)
+            if (captions != null) prefs[key(PHOTO_CAPTION, copy)] = encode(captions)
         }
     }
 
-    suspend fun resetDateLines() {
-        context.homeWidgetDataStore.edit { prefs -> prefs.remove(dateKey) }
+    suspend fun resetDateLines(copy: Int = 0) {
+        context.homeWidgetDataStore.edit { prefs -> prefs.remove(key(DATE, copy)) }
     }
 
-    suspend fun resetQuoteLines() {
-        context.homeWidgetDataStore.edit { prefs -> prefs.remove(quoteKey) }
+    suspend fun resetQuoteLines(copy: Int = 0) {
+        context.homeWidgetDataStore.edit { prefs -> prefs.remove(key(QUOTE, copy)) }
     }
 
-    suspend fun resetWeek() {
+    suspend fun resetWeek(copy: Int = 0) {
         context.homeWidgetDataStore.edit { prefs ->
-            prefs.remove(weekTextKey)
-            prefs.remove(weekTextGlyphKey)
-            prefs.remove(weekAvatarKey)
+            prefs.remove(key(WEEK_OLD, copy))
+            prefs.remove(key(WEEK_GLYPH, copy))
+            prefs.remove(key(WEEK_AVATAR, copy))
         }
     }
 
-    suspend fun resetPhotos() {
+    suspend fun resetPhotos(copy: Int = 0) {
         context.homeWidgetDataStore.edit { prefs ->
-            prefs.remove(photoKey)
-            prefs.remove(photoCaptionKey)
+            prefs.remove(key(PHOTO, copy))
+            prefs.remove(key(PHOTO_CAPTION, copy))
         }
     }
 
@@ -115,6 +120,14 @@ class HomeWidgetTextStore(private val context: Context) {
     }
 
     companion object {
+        private const val DATE = "date_lines"
+        private const val QUOTE = "quote_lines"
+        private const val WEEK_OLD = "week_texts"
+        private const val WEEK_GLYPH = "week_texts_glyph"
+        private const val WEEK_AVATAR = "week_avatar"
+        private const val PHOTO = "photo_sources"
+        private const val PHOTO_CAPTION = "photo_captions"
+
         const val GlyphHeadphone = "{耳机}"
         const val GlyphPlay = "{播放}"
         const val GlyphWave = "{波浪}"
