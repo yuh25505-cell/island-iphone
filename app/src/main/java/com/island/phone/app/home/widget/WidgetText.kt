@@ -15,14 +15,18 @@ fun WidgetText(
     lineHeight: Float,
     color: Color,
     weight: FontWeight? = null,
+    classes: List<String> = emptyList(),
 ) {
     BasicText(
         text = text.ifEmpty { " " },
-        style = TextStyle(
-            color = color,
-            fontSize = size.sp,
-            lineHeight = lineHeight.sp,
-            fontWeight = weight,
+        style = wsText(
+            TextStyle(
+                color = color,
+                fontSize = size.sp,
+                lineHeight = lineHeight.sp,
+                fontWeight = weight,
+            ),
+            classes,
         ),
         maxLines = 1,
         softWrap = false,
