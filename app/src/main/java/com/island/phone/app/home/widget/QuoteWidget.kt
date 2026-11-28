@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.sp
 import com.island.phone.core.theme.IslandTheme
 
 private val quoteAlphas = listOf(0.78f, 0.3f, 0.66f, 0.3f)
+private val QuoteCardClass = listOf("quote-card")
+private val QuoteMarkClass = listOf("quote-mark")
 
 @Composable
 fun QuoteWidget(
@@ -30,7 +32,10 @@ fun QuoteWidget(
         modifier
             .fillMaxSize()
             .widgetTap(onClick)
-            .background(widgetBackground(colors.gray5), RoundedCornerShape(30.dp)),
+            .background(
+                wsBackground(widgetBackground(colors.gray5), QuoteCardClass),
+                wsShape(QuoteCardClass, RoundedCornerShape(30.dp)),
+            ),
     ) {
         val k = (maxHeight.value / 166f).coerceIn(0.78f, 1f)
         Column(
@@ -46,12 +51,15 @@ fun QuoteWidget(
         ) {
             BasicText(
                 text = "“",
-                style = TextStyle(
-                    color = colors.label.copy(alpha = 0.5f),
-                    fontSize = (34 * k).sp,
-                    lineHeight = (34 * k).sp,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Black,
+                style = wsText(
+                    TextStyle(
+                        color = colors.label.copy(alpha = 0.5f),
+                        fontSize = (34 * k).sp,
+                        lineHeight = (34 * k).sp,
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Black,
+                    ),
+                    QuoteMarkClass,
                 ),
             )
             Column(verticalArrangement = Arrangement.spacedBy((5 * k).dp)) {
@@ -62,6 +70,7 @@ fun QuoteWidget(
                         lineHeight = 17f,
                         color = colors.label.copy(alpha = quoteAlphas.getOrElse(index) { 0.3f }),
                         weight = FontWeight.Medium,
+                        classes = listOf("quote-line", "quote-line-${index + 1}"),
                     )
                 }
             }
