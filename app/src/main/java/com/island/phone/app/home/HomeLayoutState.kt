@@ -170,16 +170,24 @@ internal class HomeLayoutState private constructor() {
     fun addWidgetKind(kind: HomeWidgetKind, page: Int): String? {
         val baseId = HomeCatalog.widgetBaseId(kind)
         if (baseId in hidden) {
-            if (!placeNear(baseId, page, 0, 0)) return null
+            if (!placeWidgetOrNewPage(baseId, page)) return null
             hidden.remove(baseId)
             return baseId
         }
         val id = HomeCatalog.registerWidgetCopy(kind, nextCopyNumber(kind)) ?: return null
-        if (!placeNear(id, page, 0, 0)) {
+        if (!placeWidgetOrNewPage(id, page)) {
             HomeCatalog.items.remove(id)
             return null
         }
         return id
+    }
+
+    private fun placeWidgetOrNewPage(id: String, page: Int): Boolean {
+        if (placeNear(id, page, 0, 0)) return true
+        if (!addPage()) return false
+        if (placeNear(id, pageCount - 1, 0, 0)) return true
+        pageCount -= 1
+        return false
     }
 
     private fun nextCopyNumber(kind: HomeWidgetKind): Int {
