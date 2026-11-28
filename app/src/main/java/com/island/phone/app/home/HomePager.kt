@@ -105,6 +105,7 @@ fun HomePager(modifier: Modifier = Modifier) {
     var pageMenu by remember { mutableStateOf(false) }
     var widgetMenu by remember { mutableStateOf(false) }
     var removingWidget by remember { mutableStateOf<String?>(null) }
+    var styleTarget by remember { mutableStateOf<HomeWidgetItem?>(null) }
     var scrollTo by remember { mutableStateOf<Int?>(null) }
     val today = remember(editorVisible) { LocalDate.now() }
     val pagerState = rememberPagerState(pageCount = { layout.pageCount })
@@ -251,6 +252,7 @@ fun HomePager(modifier: Modifier = Modifier) {
                     )
                     if (editing) {
                         HomeWidgetRemoveBadge(Modifier.align(Alignment.TopStart)) { removingWidget = item.id }
+                        HomeWidgetStyleBadge(Modifier.align(Alignment.TopEnd)) { styleTarget = item }
                     }
                 }
                 is HomeAppItem -> if (item.isFolder()) {
@@ -477,6 +479,7 @@ fun HomePager(modifier: Modifier = Modifier) {
                                         }
                                         HomeWidgetKind.WORD -> {}
                                     }
+                                    store.resetStyle(kind.name, copy)
                                 }
                             }
                         }
@@ -630,6 +633,12 @@ fun HomePager(modifier: Modifier = Modifier) {
                 editorVisible = false
             },
             onDismiss = { editorVisible = false },
+        )
+
+        HomeWidgetStyleController(
+            trigger = styleTarget,
+            store = store,
+            onConsumed = { styleTarget = null },
         )
     }
 }
