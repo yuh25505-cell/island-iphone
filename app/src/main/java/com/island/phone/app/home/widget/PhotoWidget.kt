@@ -35,6 +35,9 @@ private val photoSlots = listOf(
     PhotoSlot(x = 0.700f, y = 0.215f),
 )
 
+private val PhotoCardClass = listOf("photo-card")
+private val PhotoPolaroidClass = listOf("photo-polaroid")
+
 @Composable
 fun PhotoWidget(
     sources: List<String>,
@@ -47,12 +50,16 @@ fun PhotoWidget(
         modifier
             .fillMaxSize()
             .widgetTap(onClick)
-            .background(widgetBackground(colors.gray6), RoundedCornerShape(30.dp)),
+            .background(
+                wsBackground(widgetBackground(colors.gray6), PhotoCardClass),
+                wsShape(PhotoCardClass, RoundedCornerShape(30.dp)),
+            ),
     ) {
         val cardW = maxWidth * 0.238f
         val cardH = maxHeight * 0.68f
         photoSlots.forEachIndexed { index, slot ->
             PhotoCard(
+                index = index,
                 caption = captions.getOrElse(index) { "" },
                 source = sources.getOrElse(index) { "" },
                 modifier = Modifier
@@ -64,13 +71,13 @@ fun PhotoWidget(
 }
 
 @Composable
-private fun PhotoCard(caption: String, source: String, modifier: Modifier) {
+private fun PhotoCard(index: Int, caption: String, source: String, modifier: Modifier) {
     val colors = IslandTheme.colors
-    val shape = RoundedCornerShape(3.dp)
+    val shape = wsShape(PhotoPolaroidClass, RoundedCornerShape(3.dp))
     val borderColor = if (colors.isDark) colors.gray4 else colors.gray5
     Column(
         modifier
-            .background(colors.groupedCard, shape)
+            .background(wsBackground(colors.groupedCard, PhotoPolaroidClass), shape)
             .border(0.5.dp, borderColor, shape)
             .padding(start = 5.dp, end = 5.dp, top = 5.dp),
     ) {
@@ -88,11 +95,14 @@ private fun PhotoCard(caption: String, source: String, modifier: Modifier) {
         ) {
             BasicText(
                 text = caption,
-                style = TextStyle(
-                    color = colors.label,
-                    fontSize = 8.sp,
-                    fontFamily = FontFamily.Serif,
-                    fontStyle = FontStyle.Italic,
+                style = wsText(
+                    TextStyle(
+                        color = colors.label,
+                        fontSize = 8.sp,
+                        fontFamily = FontFamily.Serif,
+                        fontStyle = FontStyle.Italic,
+                    ),
+                    listOf("photo-caption", "photo-caption-${index + 1}"),
                 ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
