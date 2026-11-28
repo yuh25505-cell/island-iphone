@@ -56,6 +56,17 @@ private val words = listOf(
     WordEntry("cherish", "v. 珍惜", "Cherish every moment.", "珍惜每一刻。"),
 )
 
+private val WordCardClass = listOf("word-card")
+private val WordTitleClass = listOf("word-title")
+private val WordWordClass = listOf("word-word")
+private val WordMeaningClass = listOf("word-meaning")
+private val WordDividerClass = listOf("word-divider")
+private val WordExampleTitleClass = listOf("word-example-title")
+private val WordExampleClass = listOf("word-example")
+private val WordExampleZhClass = listOf("word-example-zh")
+private val WordButtonClass = listOf("word-button")
+private val WordButtonTextClass = listOf("word-button-text")
+
 @Composable
 fun WordWidget(modifier: Modifier = Modifier) {
     val colors = IslandTheme.colors
@@ -67,15 +78,21 @@ fun WordWidget(modifier: Modifier = Modifier) {
     BoxWithConstraints(
         modifier
             .fillMaxSize()
-            .background(widgetBackground(colors.gray6), RoundedCornerShape(30.dp)),
+            .background(
+                wsBackground(widgetBackground(colors.gray6), WordCardClass),
+                wsShape(WordCardClass, RoundedCornerShape(30.dp)),
+            ),
     ) {
         BasicText(
             text = "Today's Word",
             modifier = Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 18.dp),
-            style = TextStyle(
-                color = colors.secondaryLabel,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
+            style = wsText(
+                TextStyle(
+                    color = colors.secondaryLabel,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                WordTitleClass,
             ),
         )
         Row(
@@ -92,20 +109,26 @@ fun WordWidget(modifier: Modifier = Modifier) {
             ) {
                 BasicText(
                     text = entry.word,
-                    style = TextStyle(
-                        color = colors.label,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Medium,
+                    style = wsText(
+                        TextStyle(
+                            color = colors.label,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                        WordWordClass,
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 BasicText(
                     text = entry.meaning,
-                    style = TextStyle(
-                        color = colors.secondaryLabel,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                    style = wsText(
+                        TextStyle(
+                            color = colors.secondaryLabel,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        WordMeaningClass,
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -115,7 +138,7 @@ fun WordWidget(modifier: Modifier = Modifier) {
                 Modifier
                     .width(1.dp)
                     .fillMaxHeight()
-                    .background(colors.label.copy(alpha = 0.12f)),
+                    .background(wsBackground(colors.label.copy(alpha = 0.12f), WordDividerClass)),
             )
             Column(
                 Modifier.weight(0.54f).padding(start = 14.dp),
@@ -123,28 +146,37 @@ fun WordWidget(modifier: Modifier = Modifier) {
             ) {
                 BasicText(
                     text = "例句",
-                    style = TextStyle(
-                        color = colors.secondaryLabel,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
+                    style = wsText(
+                        TextStyle(
+                            color = colors.secondaryLabel,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        WordExampleTitleClass,
                     ),
                 )
                 BasicText(
                     text = entry.example,
-                    style = TextStyle(
-                        color = colors.label,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
+                    style = wsText(
+                        TextStyle(
+                            color = colors.label,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                        WordExampleClass,
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 BasicText(
                     text = entry.exampleZh,
-                    style = TextStyle(
-                        color = colors.secondaryLabel,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
+                    style = wsText(
+                        TextStyle(
+                            color = colors.secondaryLabel,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        WordExampleZhClass,
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -156,7 +188,10 @@ fun WordWidget(modifier: Modifier = Modifier) {
                 .align(Alignment.BottomEnd)
                 .padding(end = 22.dp, bottom = 16.dp)
                 .alpha(if (pressed) 0.55f else 1f)
-                .background(colors.gray5, RoundedCornerShape(50))
+                .background(
+                    wsBackground(colors.gray5, WordButtonClass),
+                    wsShape(WordButtonClass, RoundedCornerShape(50)),
+                )
                 .clickable(interactionSource = source, indication = null) {
                     index = (index + 1) % words.size
                 }
@@ -165,10 +200,13 @@ fun WordWidget(modifier: Modifier = Modifier) {
         ) {
             BasicText(
                 text = "下一词",
-                style = TextStyle(
-                    color = colors.label,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
+                style = wsText(
+                    TextStyle(
+                        color = colors.label,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    WordButtonTextClass,
                 ),
             )
         }
