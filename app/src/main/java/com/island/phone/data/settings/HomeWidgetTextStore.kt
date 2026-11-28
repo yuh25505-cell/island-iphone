@@ -53,6 +53,18 @@ class HomeWidgetTextStore(private val context: Context) {
         decode(prefs[key(PHOTO_CAPTION, copy)], DefaultPhotoCaptions)
     }
 
+    fun styleOf(kind: String, copy: Int): Flow<String> = context.homeWidgetDataStore.data.map { prefs ->
+        prefs[key("$STYLE$kind", copy)] ?: ""
+    }
+
+    suspend fun setStyle(kind: String, copy: Int, text: String) {
+        context.homeWidgetDataStore.edit { prefs -> prefs[key("$STYLE$kind", copy)] = text }
+    }
+
+    suspend fun resetStyle(kind: String, copy: Int) {
+        context.homeWidgetDataStore.edit { prefs -> prefs.remove(key("$STYLE$kind", copy)) }
+    }
+
     suspend fun setDateLines(lines: List<String>, copy: Int = 0) {
         context.homeWidgetDataStore.edit { prefs -> prefs[key(DATE, copy)] = encode(lines) }
     }
@@ -127,6 +139,7 @@ class HomeWidgetTextStore(private val context: Context) {
         private const val WEEK_AVATAR = "week_avatar"
         private const val PHOTO = "photo_sources"
         private const val PHOTO_CAPTION = "photo_captions"
+        private const val STYLE = "style_"
 
         const val GlyphHeadphone = "{耳机}"
         const val GlyphPlay = "{播放}"
