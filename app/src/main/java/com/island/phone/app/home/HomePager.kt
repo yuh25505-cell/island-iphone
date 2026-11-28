@@ -53,12 +53,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.island.phone.app.home.widget.DateWidget
-import com.island.phone.app.home.widget.PhotoWidget
-import com.island.phone.app.home.widget.QuoteWidget
-import com.island.phone.app.home.widget.WeekWidget
-import com.island.phone.app.home.widget.WordWidget
 import com.island.phone.app.home.widget.weekDateText
 import com.island.phone.app.home.widget.weekDayText
 import com.island.phone.core.theme.IslandTheme
@@ -75,8 +69,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 
-private enum class EditTarget { DATE, QUOTE, WEEK, PHOTO }
-
 @Composable
 fun HomePager(modifier: Modifier = Modifier) {
     val colors = IslandTheme.colors
@@ -84,30 +76,19 @@ fun HomePager(modifier: Modifier = Modifier) {
     val store = remember { HomeWidgetTextStore(context) }
     val layoutStore = remember { HomeLayoutStore(context) }
     val scope = rememberCoroutineScope()
-    val dateLines by store.dateLines.collectAsStateWithLifecycle(
-        initialValue = remember { runBlocking { store.dateLines.first() } },
-    )
-    val quoteLines by store.quoteLines.collectAsStateWithLifecycle(
-        initialValue = remember { runBlocking { store.quoteLines.first() } },
-    )
-    val weekTexts by store.weekTexts.collectAsStateWithLifecycle(
-        initialValue = remember { runBlocking { store.weekTexts.first() } },
-    )
-    val weekAvatar by store.weekAvatar.collectAsStateWithLifecycle(
-        initialValue = remember { runBlocking { store.weekAvatar.first() } },
-    )
-    val photoSources by store.photoSources.collectAsStateWithLifecycle(
-        initialValue = remember { runBlocking { store.photoSources.first() } },
-    )
-    val photoCaptions by store.photoCaptions.collectAsStateWithLifecycle(
-        initialValue = remember { runBlocking { store.photoCaptions.first() } },
-    )
+    var dateLines by remember { mutableStateOf(HomeWidgetTextStore.DefaultDateLines) }
+    var quoteLines by remember { mutableStateOf(HomeWidgetTextStore.DefaultQuoteLines) }
+    var weekTexts by remember { mutableStateOf(HomeWidgetTextStore.DefaultWeekTexts) }
+    var weekAvatar by remember { mutableStateOf("") }
+    var photoSources by remember { mutableStateOf(HomeWidgetTextStore.DefaultPhotoSources) }
+    var photoCaptions by remember { mutableStateOf(HomeWidgetTextStore.DefaultPhotoCaptions) }
     val layout = remember { HomeLayoutState.load(runBlocking { layoutStore.placements.first() }) }
     val geo = remember { HomeGeometry() }
     geo.density = LocalDensity.current.density
 
     var editorVisible by remember { mutableStateOf(false) }
     var target by remember { mutableStateOf(EditTarget.DATE) }
+    var editCopy by remember { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf(false) }
     var dragId by remember { mutableStateOf<String?>(null) }
     var lastDragId by remember { mutableStateOf<String?>(null) }
@@ -133,6 +114,23 @@ fun HomePager(modifier: Modifier = Modifier) {
     val openFolderAt: (Int) -> Unit = { n ->
         lastFolder = n
         openFolder = n
+    }
+    val openEditor: (Int, EditTarget) -> Unit = { copy, kind ->
+        when (kind) {
+            EditTarget.DATE -> dateLines = runBlocking { store.dateLinesOf(copy).first() }
+            EditTarget.QUOTE -> quoteLines = runBlocking { store.quoteLinesOf(copy).first() }
+            EditTarget.WEEK -> {
+                weekTexts = runBlocking { store.weekTextsOf(copy).first() }
+                weekAvatar = runBlocking { store.weekAvatarOf(copy).first() }
+            }
+            EditTarget.PHOTO -> {
+                photoSources = runBlocking { store.photoSourcesOf(copy).first() }
+                photoCaptions = runBlocking { store.photoCaptionsOf(copy).first() }
+            }
+        }
+        editCopy = copy
+        target = kind
+        editorVisible = true
     }
 
     BackHandler(enabled = editing) {
@@ -245,47 +243,12 @@ fun HomePager(modifier: Modifier = Modifier) {
         val itemContent: @Composable (HomeItem, Boolean, Dp) -> Unit = { item, inDock, iconSize ->
             when (item) {
                 is HomeWidgetItem -> Box(Modifier.fillMaxSize()) {
-                    when (item.kind) {
-                        HomeWidgetKind.DATE -> DateWidget(
-                            lines = dateLines,
-                            onClick = {
-                                if (!editing) {
-                                    target = EditTarget.DATE
-                                    editorVisible = true
-                                }
-                            },
-                        )
-                        HomeWidgetKind.QUOTE -> QuoteWidget(
-                            lines = quoteLines,
-                            onClick = {
-                                if (!editing) {
-                                    target = EditTarget.QUOTE
-                                    editorVisible = true
-                                }
-                            },
-                        )
-                        HomeWidgetKind.WORD -> WordWidget()
-                        HomeWidgetKind.WEEK -> WeekWidget(
-                            texts = weekTexts,
-                            avatar = weekAvatar,
-                            onClick = {
-                                if (!editing) {
-                                    target = EditTarget.WEEK
-                                    editorVisible = true
-                                }
-                            },
-                        )
-                        HomeWidgetKind.PHOTOS -> PhotoWidget(
-                            sources = photoSources,
-                            captions = photoCaptions,
-                            onClick = {
-                                if (!editing) {
-                                    target = EditTarget.PHOTO
-                                    editorVisible = true
-                                }
-                            },
-                        )
-                    }
+                    HomeWidgetBody(
+                        item = item,
+                        store = store,
+                        editing = editing,
+                        onEdit = { kind -> openEditor(item.copy, kind) },
+                    )
                     if (editing) {
                         HomeWidgetRemoveBadge(Modifier.align(Alignment.TopStart)) { removingWidget = item.id }
                     }
@@ -491,7 +454,33 @@ fun HomePager(modifier: Modifier = Modifier) {
                 SheetAction(title = "移除组件", destructive = true) {
                     val widgetId = removingWidget
                     removingWidget = null
-                    if (widgetId != null && layout.removeWidget(widgetId)) saveLayout()
+                    if (widgetId != null) {
+                        val copyInfo = HomeCatalog.widgetCopyOf(widgetId)
+                        if (layout.removeWidget(widgetId)) {
+                            saveLayout()
+                            if (copyInfo != null) {
+                                val kind = copyInfo.first
+                                val copy = copyInfo.second
+                                scope.launch {
+                                    when (kind) {
+                                        HomeWidgetKind.DATE -> store.resetDateLines(copy)
+                                        HomeWidgetKind.QUOTE -> store.resetQuoteLines(copy)
+                                        HomeWidgetKind.WEEK -> {
+                                            val old = store.weekAvatarOf(copy).first()
+                                            HomeWidgetImages.commit(context, emptyList(), listOf(old))
+                                            store.resetWeek(copy)
+                                        }
+                                        HomeWidgetKind.PHOTOS -> {
+                                            val old = store.photoSourcesOf(copy).first()
+                                            HomeWidgetImages.commit(context, emptyList(), old)
+                                            store.resetPhotos(copy)
+                                        }
+                                        HomeWidgetKind.WORD -> {}
+                                    }
+                                }
+                            }
+                        }
+                    }
                 },
             ),
             cancelText = "取消",
@@ -563,14 +552,18 @@ fun HomePager(modifier: Modifier = Modifier) {
             saveText = "保存",
             resetText = "恢复默认",
             onSave = { lines ->
+                val copy = editCopy
+                val isDate = target == EditTarget.DATE
                 scope.launch {
-                    if (target == EditTarget.DATE) store.setDateLines(lines) else store.setQuoteLines(lines)
+                    if (isDate) store.setDateLines(lines, copy) else store.setQuoteLines(lines, copy)
                 }
                 editorVisible = false
             },
             onReset = {
+                val copy = editCopy
+                val isDate = target == EditTarget.DATE
                 scope.launch {
-                    if (target == EditTarget.DATE) store.resetDateLines() else store.resetQuoteLines()
+                    if (isDate) store.resetDateLines(copy) else store.resetQuoteLines(copy)
                 }
                 editorVisible = false
             },
@@ -606,6 +599,7 @@ fun HomePager(modifier: Modifier = Modifier) {
             resetText = "恢复默认",
             onImport = { uri -> HomeWidgetImages.importPicked(context, uri) },
             onSave = { imgs, txts ->
+                val copy = editCopy
                 scope.launch {
                     if (isWeek) {
                         val saved = HomeWidgetImages.commit(context, imgs, listOf(weekAvatar))
@@ -614,22 +608,23 @@ fun HomePager(modifier: Modifier = Modifier) {
                             if (list[2].trim() == weekDateText(today)) list[2] = ""
                             if (list[3].trim() == weekDayText(today)) list[3] = ""
                         }
-                        store.setWeek(saved.firstOrNull() ?: "", list)
+                        store.setWeek(saved.firstOrNull() ?: "", list, copy)
                     } else {
                         val saved = HomeWidgetImages.commit(context, imgs, photoSources)
-                        store.setPhotos(saved, txts)
+                        store.setPhotos(saved, txts, copy)
                     }
                 }
                 editorVisible = false
             },
             onReset = {
+                val copy = editCopy
                 scope.launch {
                     if (isWeek) {
                         HomeWidgetImages.commit(context, emptyList(), listOf(weekAvatar))
-                        store.resetWeek()
+                        store.resetWeek(copy)
                     } else {
                         HomeWidgetImages.commit(context, emptyList(), photoSources)
-                        store.resetPhotos()
+                        store.resetPhotos(copy)
                     }
                 }
                 editorVisible = false
